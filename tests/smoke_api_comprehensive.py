@@ -1,6 +1,9 @@
-"""AI Team OS 后端API全面测试脚本.
+"""AI Team OS 后端API全面冒烟测试脚本（手动运行）.
 
 使用Python urllib发送请求，不依赖第三方库。
+**故意命名为 smoke_*.py 而非 test_*.py 以避免被 pytest 自动收集**——
+这是个会污染 DB 的副作用脚本（创建真实 meeting/team），
+只能手动通过 `python tests/smoke_api_comprehensive.py` 显式运行。
 """
 
 from __future__ import annotations
@@ -382,4 +385,31 @@ if failed_count > 0:
         if r["passed"] is False:
             print(f"  FAIL | {r['label']}{r['fail_reason']}")
 
+print()
+
+# ================================================================
+# 清理：删除测试过程中创建的 meeting / task，避免污染数据库
+# ================================================================
+print("=" * 60)
+print("【清理】删除测试创建的临时记录")
+print("=" * 60)
+
+cleanup_count = 0
+if meeting_id:
+    s, _ = req("DELETE", f"/api/meetings/{meeting_id}")
+    if s in (200, 204, 404):
+        print(f"  ✓ 删除 meeting {meeting_id[:8]}")
+        cleanup_count += 1
+    else:
+        print(f"  ! 删除 meeting 失败 status={s}")
+
+if task_id:
+    s, _ = req("DELETE", f"/api/tasks/{task_id}")
+    if s in (200, 204, 404):
+        print(f"  ✓ 删除 task {task_id[:8]}")
+        cleanup_count += 1
+    else:
+        print(f"  ! 删除 task 失败 status={s}")
+
+print(f"\n清理完成: {cleanup_count} 条记录")
 print()

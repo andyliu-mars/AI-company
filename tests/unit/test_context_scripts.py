@@ -1,6 +1,7 @@
 """AI Team OS — 上下文感知脚本测试.
 
-测试跨平台Python版context_monitor、pre_compact_save、session_bootstrap。
+测试跨平台Python版pre_compact_save、session_bootstrap。
+context_monitor已由context_tracker替代，见test_context_tracker.py。
 """
 
 from __future__ import annotations
@@ -12,81 +13,6 @@ from pathlib import Path
 
 HOOKS_DIR = Path(__file__).parent.parent.parent / "src" / "aiteam" / "hooks"
 CONFIG_DIR = Path(__file__).parent.parent.parent / "plugin" / "config"
-
-
-# ============================================================
-# context_monitor.py
-# ============================================================
-
-
-class TestContextMonitor:
-    """context_monitor.py — 阈值警告."""
-
-    script = HOOKS_DIR / "context_monitor.py"
-
-    def _run_with_percentage(self, pct: float, tmp_path: Path) -> str:
-        """在指定百分比下运行，返回stdout."""
-        claude_dir = tmp_path / ".claude"
-        claude_dir.mkdir(exist_ok=True)
-        monitor = claude_dir / "context-monitor.json"
-        monitor.write_text(
-            json.dumps(
-                {
-                    "used_percentage": pct,
-                    "timestamp": "2026-03-14T00:00:00Z",
-                    "context_window_size": 200000,
-                }
-            )
-        )
-
-        env = {
-            **dict(__import__("os").environ),
-            "HOME": str(tmp_path),
-            "USERPROFILE": str(tmp_path),
-        }
-        result = subprocess.run(
-            [sys.executable, str(self.script)],
-            input="{}",
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=10,
-            env=env,
-        )
-        return result.stdout
-
-    def test_below_80_silent(self, tmp_path):
-        """80%以下无输出."""
-        output = self._run_with_percentage(75.0, tmp_path)
-        assert output.strip() == ""
-
-    def test_80_warning(self, tmp_path):
-        """80%-89%输出WARNING."""
-        output = self._run_with_percentage(85.0, tmp_path)
-        assert "WARNING" in output or "warning" in output.lower()
-
-    def test_90_critical(self, tmp_path):
-        """90%以上输出CRITICAL."""
-        output = self._run_with_percentage(95.0, tmp_path)
-        assert "CRITICAL" in output or "critical" in output.lower()
-
-    def test_no_monitor_file_silent(self, tmp_path):
-        """无monitor文件时静默."""
-        env = {
-            **dict(__import__("os").environ),
-            "HOME": str(tmp_path),
-            "USERPROFILE": str(tmp_path),
-        }
-        result = subprocess.run(
-            [sys.executable, str(self.script)],
-            input="{}",
-            capture_output=True,
-            text=True,
-            timeout=10,
-            env=env,
-        )
-        assert result.returncode == 0
 
 
 # ============================================================

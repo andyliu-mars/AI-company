@@ -136,7 +136,7 @@ def register(mcp):
             },
         )
 
-    @mcp.tool()
+    @mcp.tool(meta={"anthropic/maxResultSizeChars": 500000})
     def event_list(limit: int = 50) -> dict[str, Any]:
         """List recent events in the system.
 

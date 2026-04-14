@@ -16,6 +16,19 @@ from pathlib import Path
 
 _SUPERVISOR_STATE_DIR = os.path.join(os.path.expanduser("~"), ".claude", "data", "ai-team-os")
 _SUPERVISOR_STATE_FILE = os.path.join(_SUPERVISOR_STATE_DIR, "supervisor-state.json")
+_PORT_FILE = os.path.join(_SUPERVISOR_STATE_DIR, "api_port.txt")
+
+
+def _get_api_url() -> str:
+    """Return current API URL. AITEAM_API_URL env var takes highest priority."""
+    env_url = os.environ.get("AITEAM_API_URL")
+    if env_url:
+        return env_url
+    try:
+        port = int(open(_PORT_FILE).read().strip())
+        return f"http://localhost:{port}"
+    except (FileNotFoundError, ValueError):
+        return "http://localhost:8000"
 
 # Threshold for Leader delegation check
 _LEADER_CONSECUTIVE_THRESHOLD = 8
@@ -41,7 +54,7 @@ _API_TIMEOUT = 2
 
 def _api_call(method: str, path: str, body: dict | None = None, project_id: str | None = None) -> dict | None:
     """Make a JSON API call to the OS backend. Returns parsed response or None on failure."""
-    api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+    api_url = _get_api_url()
     url = f"{api_url}{path}"
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"} if data else {}
@@ -68,7 +81,7 @@ def _resolve_project_id() -> str | None:
         return cached
 
     # Resolve via API
-    api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+    api_url = _get_api_url()
     cwd = os.getcwd()
     try:
         req = urllib.request.Request(
@@ -92,7 +105,9 @@ def _resolve_project_id() -> str | None:
         return cached  # Return stale cache on failure
 
 
-def _get_running_pipeline_subtask(api_url: str, project_id: str | None = None) -> tuple[str | None, str | None, str | None, str | None]:
+def _get_running_pipeline_subtask(
+    api_url: str, project_id: str | None = None
+) -> tuple[str | None, str | None, str | None, str | None]:
     """Return (subtask_id, parent_task_id, stage_name, next_stage_name) for the current running pipeline.
 
     Scans active teams for a running task with a pipeline, finds the current pending/running stage,
@@ -168,7 +183,9 @@ def _advance_pipeline_on_completion(api_url: str, project_id: str | None = None)
 
     Returns a reminder text for Leader, or None when no pipeline found.
     """
-    subtask_id, parent_task_id, stage_name, next_stage_name = _get_running_pipeline_subtask(api_url, project_id=project_id)
+    subtask_id, parent_task_id, stage_name, next_stage_name = _get_running_pipeline_subtask(
+        api_url, project_id=project_id
+    )
     if not subtask_id or not parent_task_id:
         return None
 
@@ -251,7 +268,9 @@ def _check_agent_team_name(event_data: dict) -> str | None:
     sys.stderr.write(
         "[OS BLOCK] Local agents not allowed. All agents must be team members. "
         "Flow: TeamCreate(team_name=...) then Agent(team_name=..., name=..., subagent_type=...). "
-        "Only explore/plan agents are exempt."
+        "Only explore/plan agents are exempt. "
+        "If Agent tool lacks team_name param, ensure CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 "
+        "is set in ~/.claude/settings.json and restart CC."
     )
     sys.exit(2)
 
@@ -318,7 +337,7 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
             try:
                 import urllib.request
 
-                api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+                api_url = _get_api_url()
                 _ph: dict[str, str] = {}
                 if project_id:
                     _ph["X-Project-Id"] = project_id
@@ -370,11 +389,42 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
                     "请先用 task_create 将任务上墙再分配。"
                     "→ 标准流程：task_create → Agent(team_name=...)"
                 )
+            else:
+                # 2a-TW. Pre-check: verify dispatched work matches a task wall item
+                try:
+                    agent_prompt = (input_dict.get("prompt", "") + " " + input_dict.get("description", "")).lower()
+                    if agent_prompt.strip() and project_id:
+                        _tw_path = f"/api/projects/{project_id}/task-wall?limit=20&include_completed=false"
+                        tw_data = _api_call("GET", _tw_path, project_id=project_id)
+                        if tw_data:
+                            tw_tasks: list[dict] = []
+                            for hg in (tw_data.get("wall") or {}).values():
+                                if isinstance(hg, list):
+                                    tw_tasks.extend(hg)
+                            tw_pending = [t for t in tw_tasks if t.get("status") in ("pending", "running")]
+                            # Quick keyword match check
+                            agent_words = set(agent_prompt.replace("—", " ").replace("-", " ").split())
+                            agent_words -= {"的", "是", "在", "了", "和", "与", "a", "the", "to", "for", "of"}
+                            matched_any = False
+                            for t in tw_pending:
+                                _raw = (t.get("title") or "").lower().replace("—", " ").replace("-", " ")
+                                title_words = set(_raw.split())
+                                if len(title_words & agent_words) >= 2:
+                                    matched_any = True
+                                    break
+                            if not matched_any and tw_pending:
+                                tw_titles = "、".join(t.get("title", "?")[:20] for t in tw_pending[:3])
+                                warnings.append(
+                                    f"[OS提醒] 此Agent工作未匹配到任务墙项（墙上有：{tw_titles}��。"
+                                    "确认此工作已在任务墙登记？→ task_create 上墙"
+                                )
+                except Exception:
+                    pass  # Advisory only
 
             # 2-CP1. Pipeline subtask binding: mark current stage subtask as running
             if has_active_task:
                 try:
-                    _bind_api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+                    _bind_api_url = _get_api_url()
                     bind_msg = _bind_subtask_running(_bind_api_url, project_id=project_id)
                     if bind_msg:
                         warnings.append(f"[OS提醒] {bind_msg}")
@@ -523,7 +573,7 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
         try:
             import urllib.request
 
-            api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+            api_url = _get_api_url()
             _tdh: dict[str, str] = {}
             if project_id:
                 _tdh["X-Project-Id"] = project_id
@@ -551,7 +601,7 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
         try:
             import urllib.request
 
-            api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+            api_url = _get_api_url()
             _tch: dict[str, str] = {}
             if project_id:
                 _tch["X-Project-Id"] = project_id
@@ -574,7 +624,7 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
         try:
             import urllib.request
 
-            api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+            api_url = _get_api_url()
             _smh: dict[str, str] = {}
             if project_id:
                 _smh["X-Project-Id"] = project_id
@@ -677,7 +727,7 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
         if is_completion and not is_shutdown:
             # 9-CP2. Pipeline auto-advance: mark subtask completed and advance pipeline
             try:
-                _advance_api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+                _advance_api_url = _get_api_url()
                 advance_msg = _advance_pipeline_on_completion(_advance_api_url, project_id=project_id)
                 if advance_msg:
                     warnings.append(advance_msg)
@@ -685,7 +735,7 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
                 pass  # Advancing is optional — never block completion message
 
             try:
-                api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+                api_url = _get_api_url()
                 _r9h: dict[str, str] = {}
                 if project_id:
                     _r9h["X-Project-Id"] = project_id
@@ -749,7 +799,7 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
         try:
             import urllib.request
 
-            api_url = os.environ.get("AITEAM_API_URL", "http://localhost:8000")
+            api_url = _get_api_url()
             _b13h: dict[str, str] = {}
             if project_id:
                 _b13h["X-Project-Id"] = project_id
@@ -903,6 +953,132 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
     return warnings
 
 
+def _post_tool_taskwall_sync(event_data: dict, state: dict, project_id: str | None = None) -> list[str]:
+    """PostToolUse: auto-sync task wall when Agent dispatched or completion reported.
+
+    1. After Agent dispatch → find matching pending task on project wall → auto-update to running
+    2. After SendMessage(completion) → remind to update task to completed
+    """
+    tool_name = event_data.get("tool_name", "")
+    warnings: list[str] = []
+
+    if not project_id:
+        return warnings
+
+    # 1. After Agent dispatch: auto-link to task wall item
+    if tool_name == "Agent":
+        input_dict = event_data.get("tool_input", {})
+        # Only for team agents (non-readonly)
+        if not input_dict.get("team_name"):
+            return warnings
+
+        agent_prompt = input_dict.get("prompt", "")
+        agent_desc = input_dict.get("description", "")
+        agent_text = f"{agent_desc} {agent_prompt}".lower()
+
+        if not agent_text.strip():
+            return warnings
+
+        try:
+            # Query project task wall for pending tasks
+            _wall_path = f"/api/projects/{project_id}/task-wall?limit=20&include_completed=false"
+            wall_data = _api_call("GET", _wall_path, project_id=project_id)
+            if not wall_data:
+                return warnings
+
+            wall_tasks: list[dict] = []
+            for horizon_group in (wall_data.get("wall") or {}).values():
+                if isinstance(horizon_group, list):
+                    wall_tasks.extend(horizon_group)
+
+            # Find matching pending task by keyword overlap
+            pending_tasks = [t for t in wall_tasks if t.get("status") in ("pending", "running")]
+            best_match: dict | None = None
+            best_score = 0
+
+            for task in pending_tasks:
+                title = (task.get("title") or "").lower()
+                tags = [t.lower() for t in (task.get("tags") or [])]
+                desc = (task.get("description") or "").lower()
+
+                # Simple keyword overlap scoring
+                score = 0
+                title_words = set(title.replace("—", " ").replace("-", " ").split())
+                agent_words = set(agent_text.replace("—", " ").replace("-", " ").split())
+                # Remove common stop words
+                stop_words = {"的", "是", "在", "了", "和", "与", "a", "the", "to", "and", "for", "of", "in", "on"}
+                title_words -= stop_words
+                agent_words -= stop_words
+
+                overlap = title_words & agent_words
+                score += len(overlap) * 2
+
+                # Tag matching
+                for tag in tags:
+                    if tag in agent_text:
+                        score += 3
+
+                # Description keyword overlap
+                if desc:
+                    desc_words = set(desc.replace("—", " ").replace("-", " ").split()) - stop_words
+                    score += len(desc_words & agent_words)
+
+                if score > best_score:
+                    best_score = score
+                    best_match = task
+
+            if best_match and best_score >= 3:
+                task_id = best_match["id"]
+                task_title = best_match.get("title", "")
+                task_status = best_match.get("status", "pending")
+
+                if task_status == "pending":
+                    # Auto-update to running
+                    _api_call("PUT", f"/api/tasks/{task_id}", {"status": "running"}, project_id=project_id)
+                    warnings.append(
+                        f"[OS提醒] 已自动关联任务墙：「{task_title}」→ running"
+                    )
+                else:
+                    warnings.append(
+                        f"[OS提醒] 当前工作关联任务墙：「{task_title}」（状态: {task_status}）"
+                    )
+
+                # Save matched task ID for later completion tracking
+                state["last_dispatched_task_id"] = task_id
+                state["last_dispatched_task_title"] = task_title
+            elif best_score < 3 and pending_tasks:
+                # No good match — warn to create on wall
+                warnings.append(
+                    "[OS提醒] 此Agent工作未匹配到任务墙项。建议先用 task_create 上墙，确保工作可追踪。"
+                    f"当前任务墙有 {len(pending_tasks)} 个待办任务"
+                )
+
+        except Exception:
+            pass  # Task wall sync is advisory — never block
+
+    # 2. After SendMessage with completion keywords: suggest updating task status
+    if tool_name == "SendMessage":
+        input_str = str(event_data.get("tool_input", {}))
+        completion_keywords = ["完成", "completed", "done", "finished", "汇报"]
+        is_completion = any(kw in input_str.lower() for kw in completion_keywords)
+        is_shutdown = "shutdown" in input_str.lower()
+
+        if is_completion and not is_shutdown:
+            last_task_id = state.get("last_dispatched_task_id")
+            last_task_title = state.get("last_dispatched_task_title")
+            if last_task_id:
+                # Auto-update task to completed
+                _api_call("PUT", f"/api/tasks/{last_task_id}", {"status": "completed"}, project_id=project_id)
+                warnings.append(
+                    f"[OS提醒] 已自动更新任务墙：「{last_task_title}」→ completed"
+                )
+                # Clear tracking
+                state.pop("last_dispatched_task_id", None)
+                state.pop("last_dispatched_task_title", None)
+
+    return warnings
+
+
 def main() -> None:
     # Force UTF-8 output on Windows (default is gbk, causes garbled Chinese)
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
@@ -935,7 +1111,9 @@ def main() -> None:
         if w:
             warnings.append(w)
     if event_name == "PostToolUse":
-        pass  # Reserved for future PostToolUse-specific checks
+        # Auto-update task wall when Agent is dispatched or reports completion
+        post_warnings = _post_tool_taskwall_sync(payload, state, project_id=project_id)
+        warnings.extend(post_warnings)
 
     # Workflow reminders (checked for both PreToolUse and PostToolUse)
     if event_name in ("PreToolUse", "PostToolUse"):

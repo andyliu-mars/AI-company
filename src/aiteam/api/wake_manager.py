@@ -4,7 +4,9 @@ import asyncio
 import logging
 import os
 import re
+import tempfile
 from datetime import datetime
+from pathlib import Path
 
 from aiteam.config import settings
 
@@ -67,6 +69,66 @@ def _build_prompt(sched_task) -> str:
     if task_context:
         return f"{prompt_template}\n\n<task-context>\n{task_context}\n</task-context>"
     return prompt_template
+
+
+def _cleanup_prompt_file(prompt_file: str | None) -> None:
+    """Remove temp prompt file if it exists, silently ignore errors."""
+    if prompt_file:
+        try:
+            Path(prompt_file).unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def _build_cmd(
+    prompt: str,
+    max_turns: str,
+    allowed_tools_str: str,
+    cfg: dict,
+) -> tuple[list[str], str | None]:
+    """Build the claude subprocess command array.
+
+    Returns (cmd, prompt_file) where prompt_file is a path to a temp file
+    that must be deleted after the subprocess finishes, or None if the prompt
+    was passed inline.
+
+    --bare mode skips CLAUDE.md / plugins / hooks / auto memory, but also drops
+    MCP server discovery. We pair it with --mcp-config pointing to the project's
+    .mcp.json so that mcp__ai-team-os__* tools remain available.
+    """
+    bare_mode: bool = cfg.get("bare_mode", True)
+
+    # Resolve .mcp.json path relative to cwd or project root
+    mcp_config_path: str = cfg.get("mcp_config", "")
+    if not mcp_config_path and bare_mode:
+        # Attempt to locate .mcp.json next to the project working directory
+        cwd = cfg.get("cwd", "")
+        candidate = Path(cwd) / ".mcp.json" if cwd else None
+        if candidate and candidate.exists():
+            mcp_config_path = str(candidate)
+
+    # Handle Windows 8191-char cmdline limit — use temp file for long prompts
+    prompt_file: str | None = None
+    prompt_arg: str = prompt
+    if len(prompt) > 4000:
+        tf = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False, encoding="utf-8"
+        )
+        tf.write(prompt)
+        tf.close()
+        prompt_file = tf.name
+        prompt_arg = f"@{prompt_file}"
+
+    cmd: list[str] = ["claude", "-p", prompt_arg]
+
+    if bare_mode:
+        cmd += ["--bare", "--exclude-dynamic-system-prompt-sections"]
+        if mcp_config_path:
+            cmd += ["--mcp-config", mcp_config_path]
+
+    cmd += ["--max-turns", max_turns, "--allowedTools", allowed_tools_str]
+
+    return cmd, prompt_file
 
 
 class WakeAgentManager:
@@ -133,7 +195,7 @@ class WakeAgentManager:
         allowed_tools_str = ",".join(tools)
         prompt = _build_prompt(sched_task)
 
-        cmd = ["claude", "-p", prompt, "--max-turns", max_turns, "--allowedTools", allowed_tools_str]
+        cmd, prompt_file = _build_cmd(prompt, max_turns, allowed_tools_str, cfg)
 
         # Resolve working directory: use action_config.cwd or project root
         cwd = cfg.get("cwd", "")
@@ -158,6 +220,7 @@ class WakeAgentManager:
             )
         except Exception as e:
             logger.error("wake_agent: failed to start subprocess for %s: %s", agent_name, e)
+            _cleanup_prompt_file(prompt_file)
             # Record failed session
             session = await self._repo.create_wake_session(
                 scheduled_task_id=task_id, agent_name=agent_name,
@@ -177,14 +240,14 @@ class WakeAgentManager:
 
         # Fire-and-forget: register independent tracking task
         track_task = asyncio.create_task(
-            self._track_session(proc, sched_task, agent_name, session.id),
+            self._track_session(proc, sched_task, agent_name, session.id, prompt_file),
             name=f"wake-{agent_name}",
         )
         self._active_sessions[agent_name] = track_task
         logger.info("wake_agent: started %s (pid=%s, session=%s)", agent_name, proc.pid, session.id)
         return "started"
 
-    async def _track_session(self, proc, sched_task, agent_name: str, session_id: str):
+    async def _track_session(self, proc, sched_task, agent_name: str, session_id: str, prompt_file: str | None = None):
         """Independent task: waits for subprocess, handles timeout, records outcome."""
         start_time = datetime.now()
         outcome = "error"
@@ -231,6 +294,7 @@ class WakeAgentManager:
             outcome = "error"
             logger.error("wake_agent: %s tracking error: %s", agent_name, e)
         finally:
+            _cleanup_prompt_file(prompt_file)
             self._active_sessions.pop(agent_name, None)
             finished = datetime.now()
             duration = (finished - start_time).total_seconds()

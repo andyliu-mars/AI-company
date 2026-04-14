@@ -60,7 +60,7 @@ def register(mcp):
             }
         return result or {"success": False, "error": "API call failed"}
 
-    @mcp.tool()
+    @mcp.tool(meta={"anthropic/maxResultSizeChars": 500000})
     def report_list(
         author: str = "",
         topic: str = "",
@@ -108,7 +108,7 @@ def register(mcp):
             }
         return result or {"success": False, "error": "API call failed"}
 
-    @mcp.tool()
+    @mcp.tool(meta={"anthropic/maxResultSizeChars": 500000})
     def report_read(report_id: str) -> dict[str, Any]:
         """Read the full content of a saved report by ID.
 

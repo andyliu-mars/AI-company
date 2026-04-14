@@ -28,9 +28,10 @@ def test_is_port_open_returns_true():
 
 
 @patch("aiteam.mcp._autostart._is_port_open", return_value=True)
-@patch("aiteam.mcp._autostart._get_running_api_version", return_value="0.8.0")
+@patch("aiteam.mcp._autostart._is_api_healthy_on_port", return_value=True)
+@patch("aiteam.mcp._autostart._get_running_api_version_on_port", return_value="1.3.0")
 @patch("aiteam.mcp._autostart.subprocess.Popen")
-def test_ensure_api_skips_when_running(mock_popen, mock_version, mock_port):
+def test_ensure_api_skips_when_running(mock_popen, mock_version_on_port, mock_healthy, mock_port):
     """Port already occupied with matching version — subprocess must not be spawned."""
     _ensure_api_running()
     mock_popen.assert_not_called()

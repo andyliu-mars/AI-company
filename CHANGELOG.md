@@ -3,6 +3,70 @@
 All notable changes to AI Team OS will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.3.0] — 2026-04-13
+
+### Added
+- **CC native integration (Track A)**
+  - `TaskCompleted` hook — hard gate that blocks task completion without memo/result via `task_completed_gate.py`; exit 2 on missing progress records
+  - `TaskCreated` hook bridge — `cc_task_bridge.py` auto-mirrors CC native task creations into the OS task wall
+  - `PermissionDenied` hook with classifier — `permission_denied_recovery.py` calls new `POST /api/hooks/diagnose_denial` endpoint for 4-way decisions: `recoverable_with_retry`, `recoverable_with_workaround`, `needs_user_approval`, `permanent_denial`
+  - MCP tool `meta={"anthropic/maxResultSizeChars": 500000}` annotations on 8 data-heavy tools (`taskwall_view`, `task_list_project`, `report_list`, `report_read`, `event_list`, `meeting_read_messages`, `memory_search`, `team_knowledge`)
+  - `wake_agent` `--bare` + `--exclude-dynamic-system-prompt-sections` optimization — expected ~50% startup latency reduction with long prompt temp file fallback for Windows cmdline length limit
+
+- **Meeting system complete redesign (Track B)**
+  - `meeting_create` returns full `dispatch_plan[]` with ready-to-paste `Agent()` launch parameters, eliminating Leader impersonation by providing explicit spawn instructions per participant
+  - Structured `participants` input: `{name, agent_template, role, context_files, expected_output}` replaces legacy string list (backward compatible)
+  - `meeting_attendance_check(meeting_id)` — query spoken/pending participants per round with timeout tracking
+  - `meeting_send_message` new `caller_agent_id` parameter — impersonation audit; mismatched calls get `impersonation: true` metadata and event log entry
+  - `meeting_conclude` default `validate_attendance: true` — returns 400 with missing participant list when not all spoken; `force=true` bypasses but logs `meeting.forced_conclude_with_missing` event
+  - `Meeting.meta_json` persistent field stores `expected_participants` and round state
+
+- **Meeting templates migrated to Plugin Skills (Track C)**
+  - 8 templates moved from hardcoded `templates.py` dict (234 lines) to `plugin/skills/meeting-facilitate/templates/*.md` files (brainstorm/decision/review/retrospective/standup/debate/lean_coffee/council)
+  - Each template has YAML frontmatter with structured round data + markdown body (when to use / participant guide / anti-patterns)
+  - `templates.py` rewritten as lazy YAML loader (107 lines), backward-compatible API
+  - **User extensibility**: drop a new `.md` file to add custom meeting templates without touching Python code
+  - Uses CC's progressive disclosure pattern — templates only loaded when needed, zero token penalty
+  - Completely rewrote `plugin/skills/meeting-facilitate/SKILL.md` (355 lines) with 7-step lifecycle aligned to new dispatch_plan API, template selection matrix, 3 end-to-end scenarios, 7 anti-pattern warnings
+
+- **Context tracking via transcript parsing (Plan E)**
+  - New `context_tracker.py` hook on `UserPromptSubmit` — reads `transcript_path` from hook payload and extracts `usage.input_tokens` + cache tokens from the last assistant message in the session jsonl for 100% accurate context usage
+  - Automatic 1M context window detection via model identifier suffix (`[1m]`)
+  - Warns at `>=80%` (CONTEXT WARNING) and `>=90%` (CONTEXT CRITICAL) with token breakdown
+  - **Zero dependency on statusline** — works for plugin users who don't have our custom statusline installed
+  - **Natural project isolation** — transcript path itself encodes project identity, eliminating cross-project monitor file bugs
+
+- **Project auto-registration flow**
+  - New `POST /api/context/resolve` endpoint with exact/prefix/auto-create matching strategies
+  - `session_bootstrap.py` detects unregistered directories and injects registration prompt to Leader (non-blocking)
+  - New `dismiss_project_registration(cwd)` MCP tool — users can opt out; persisted to `~/.claude/data/ai-team-os/dismissed_projects.json`
+  - Fixes the bug where new project directories (e.g., `靖安笔试`, `repo-insight`) were never registered until manually triggered
+
+### Changed
+- **Task wall auto-sync in `workflow_reminder.py`**
+  - PreToolUse: extracts agent prompt + description, performs keyword matching against project task wall pending items, warns when Leader-dispatched work doesn't correspond to any wall task
+  - PostToolUse: new `_post_tool_taskwall_sync()` — Agent dispatch auto-updates matching task to `running`; completion SendMessage auto-updates to `completed`
+  - Narrowed report data directory warning to only `.claude/data/ai-team-os/reports/` paths (no more false positives on source code)
+
+- **Session bootstrap context engineering**
+  - Removed broken instruction to read `~/.claude/context-monitor.json` (file no longer maintained)
+  - New instruction: "hook has already monitored context; you only need to focus on task progression"
+  - Added project auto-registration prompt block when current cwd is unregistered
+
+- **Documentation updates**
+  - `README.md` / `README.zh-CN.md` reflects new meeting system and template architecture
+  - Skill docs reorganized per CC's progressive disclosure best practices
+
+### Fixed
+- **Distribution sync** — 4 hook scripts were out of sync between `src/aiteam/hooks/` and `plugin/hooks/` (missing `_get_api_url()`, project registration checks, task wall auto-sync). Plugin users would have experienced broken dynamic port detection and silent feature loss. All 4 files now byte-identical between dev and distribution copies.
+- **`meeting.py:103`** — `_build_dispatch_plan` return type annotation aligned with actual three-tuple return (added `legacy_warnings`)
+- **`context-monitor.json` cross-project pollution** — old `_find_monitor_file()` globbed all projects and picked most-recent by mtime, reading stale data from other sessions. Replaced entirely by `context_tracker.py` which uses `transcript_path.parent` for natural isolation.
+- **Scheduled task false warnings** — auto-wake prompt no longer reads a 9-day-old global `context-monitor.json` that falsely reported `<10%` regardless of actual usage
+
+### Removed
+- `src/aiteam/hooks/context_monitor.py` and `plugin/hooks/context_monitor.py` — replaced by `context_tracker.py`
+- Global `~/.claude/context-monitor.json` dependency — no longer read or written by OS
+
 ## [1.2.1] — 2026-04-07
 
 ### Added

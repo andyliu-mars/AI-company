@@ -3,6 +3,70 @@
 AI Team OS 的所有重要变更均记录在此文件中。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/)
 
+## [1.3.0] — 2026-04-13
+
+### 新增
+- **CC 原生集成（Track A）**
+  - `TaskCompleted` hook 硬门控 — `task_completed_gate.py` 在任务缺失 memo/result 时 exit 2 拒绝完成，把 verify_completion 从"软提示"变"硬拦截"
+  - `TaskCreated` hook 桥接 — `cc_task_bridge.py` 把 CC 原生任务自动镜像到 OS 任务墙
+  - `PermissionDenied` hook 接入分类器 — `permission_denied_recovery.py` 调用新 `POST /api/hooks/diagnose_denial` 端点，返回 4 类决策：`recoverable_with_retry` / `recoverable_with_workaround` / `needs_user_approval` / `permanent_denial`
+  - 8 个大数据 MCP 工具添加 `meta={"anthropic/maxResultSizeChars": 500000}` 注解（`taskwall_view` / `task_list_project` / `report_list` / `report_read` / `event_list` / `meeting_read_messages` / `memory_search` / `team_knowledge`）
+  - `wake_agent` 启用 `--bare` + `--exclude-dynamic-system-prompt-sections` 优化，预期启动延迟降 50%；长 prompt 走临时文件 fallback 绕过 Windows 命令行长度限制
+
+- **会议系统完整重设计（Track B）**
+  - `meeting_create` 返回完整 `dispatch_plan[]` — 每个参与者带 ready-to-paste 的 `Agent()` 启动参数，彻底消除 Leader 代打问题
+  - 结构化 `participants` 输入：`{name, agent_template, role, context_files, expected_output}` 替代旧字符串列表（向后兼容）
+  - `meeting_attendance_check(meeting_id)` — 查询当前轮次已发言/未发言参与者 + 超时跟踪
+  - `meeting_send_message` 新增 `caller_agent_id` 参数 — 代打审计，调用者与 agent_id 不一致时打 `impersonation: true` 元数据并记录事件日志
+  - `meeting_conclude` 默认 `validate_attendance: true` — 未全员发言返回 400 + missing 清单；`force=true` 绕过但记录 `meeting.forced_conclude_with_missing` 事件
+  - `Meeting.meta_json` 持久化字段存储 `expected_participants` 和轮次状态
+
+- **会议模板迁移到 Plugin Skills（Track C）**
+  - 8 个模板从硬编码 `templates.py` dict（234 行）迁移到 `plugin/skills/meeting-facilitate/templates/*.md` 文件（brainstorm/decision/review/retrospective/standup/debate/lean_coffee/council）
+  - 每个模板含 YAML frontmatter 结构化轮次数据 + markdown 正文（何时使用 / 参与者建议 / 反模式）
+  - `templates.py` 重写为懒加载 YAML loader（107 行），保持 API 向后兼容
+  - **用户可扩展**：drop 一个 `.md` 文件即可新增自定义会议模板，无需改 Python 代码
+  - 利用 CC 的 progressive disclosure 模式 — 模板仅在需要时加载，零 token 消耗
+  - 完全重写 `plugin/skills/meeting-facilitate/SKILL.md`（355 行）：7 步生命周期对接新 dispatch_plan API + 模板选择决策矩阵 + 3 个端到端场景 + 7 条反模式警告
+
+- **上下文追踪改为 transcript 直读（Plan E）**
+  - 新增 `context_tracker.py` hook 注册到 `UserPromptSubmit` — 从 hook payload 读 `transcript_path`，解析 session jsonl 最后一条 assistant message 的 `usage.input_tokens` + cache tokens，获得 100% 精确的上下文使用率
+  - 自动识别 1M 上下文窗口（通过 model 标识符 `[1m]` 后缀）
+  - `>=80%` 触发 CONTEXT WARNING，`>=90%` 触发 CONTEXT CRITICAL，带 token 明细
+  - **完全不依赖 statusline** — 分发版用户无需安装自定义 statusline 也能工作
+  - **天然项目隔离** — transcript path 本身就编码了项目身份，彻底消除跨项目 monitor 文件 bug
+
+- **项目自动注册流程**
+  - 新增 `POST /api/context/resolve` 端点，支持精确匹配/前缀匹配/自动创建三种策略
+  - `session_bootstrap.py` 检测未注册目录并注入注册询问提示给 Leader（非阻塞）
+  - 新增 `dismiss_project_registration(cwd)` MCP 工具 — 用户可拒绝注册；持久化到 `~/.claude/data/ai-team-os/dismissed_projects.json`
+  - 修复新项目目录（如 `靖安笔试`、`repo-insight`）必须手动触发才能注册的 bug
+
+### 变更
+- **任务墙自动同步（`workflow_reminder.py`）**
+  - PreToolUse：提取 agent prompt + description，与项目任务墙 pending 项做关键词匹配，Leader 派遣未匹配墙上任务时发出警告
+  - PostToolUse：新增 `_post_tool_taskwall_sync()` — Agent 派遣时自动更新匹配任务为 `running`；完成 SendMessage 时自动更新为 `completed`
+  - 报告数据目录警告精确到 `.claude/data/ai-team-os/reports/` 路径，不再对源码误报
+
+- **会话启动上下文工程**
+  - 移除损坏的"读取 `~/.claude/context-monitor.json`"指令（文件已不再维护）
+  - 新指令：hook 已自动监控上下文，Leader 只需专注任务推进
+  - 未注册目录检测到时注入项目自动注册提示块
+
+- **文档更新**
+  - `README.md` / `README.zh-CN.md` 反映新会议系统和模板架构
+  - Skill 文档按 CC progressive disclosure 最佳实践重组
+
+### 修复
+- **分发版同步** — 4 个 hook 脚本在 `src/aiteam/hooks/` 和 `plugin/hooks/` 之间失同步（缺失 `_get_api_url()`、项目注册检查、任务墙自动同步逻辑）。分发版用户会遭遇动态端口失效和功能静默缺失。所有 4 个文件现在在 dev 和分发副本之间字节级一致。
+- **`meeting.py:103`** — `_build_dispatch_plan` 返回类型注解对齐实际三元组（补上 `legacy_warnings`）
+- **`context-monitor.json` 跨项目污染** — 旧 `_find_monitor_file()` 用 glob 扫所有项目按 mtime 取最新，会读到其他 session 的过期数据。已被 `context_tracker.py` 完全替代，后者用 `transcript_path.parent` 天然隔离
+- **定时唤醒误报** — 自动唤醒 prompt 不再读取 9 天前的全局 `context-monitor.json`（它错误地总是报告 <10% 无论实际用量如何）
+
+### 移除
+- `src/aiteam/hooks/context_monitor.py` 和 `plugin/hooks/context_monitor.py` — 被 `context_tracker.py` 取代
+- 全局 `~/.claude/context-monitor.json` 依赖 — OS 不再读也不再写
+
 ## [1.2.1] — 2026-04-07
 
 ### 新增

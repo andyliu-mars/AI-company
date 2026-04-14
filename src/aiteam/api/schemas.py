@@ -140,6 +140,7 @@ class MeetingCreate(BaseModel):
 
     topic: str
     participants: list[str] = Field(default_factory=list)
+    meta_json: dict = Field(default_factory=dict)
 
 
 class SubtaskInput(BaseModel):
@@ -208,6 +209,15 @@ class MeetingMessageCreate(BaseModel):
     agent_name: str
     content: str
     round_number: int = 1
+    caller_agent_id: str = ""  # actual caller; if differs from agent_id → impersonation audit
+
+
+class MeetingConcludeBody(BaseModel):
+    """Conclude meeting request body."""
+
+    summary: str = ""
+    validate_attendance: bool = True
+    force: bool = False
 
 
 class CrossMessageCreate(BaseModel):

@@ -288,6 +288,66 @@ def _check_for_updates() -> str | None:
     return notice
 
 
+_DISMISSED_PROJECTS_FILE = Path.home() / ".claude" / "data" / "ai-team-os" / "dismissed_projects.json"
+
+
+def _normalize_cwd(cwd: str) -> str:
+    """Normalize a path for comparison: resolve, lowercase, forward slashes."""
+    return str(Path(cwd).resolve()).replace("\\", "/").lower()
+
+
+def _load_dismissed_projects() -> list[str]:
+    """Load the list of dismissed cwd paths from the dismissed_projects.json file."""
+    try:
+        if _DISMISSED_PROJECTS_FILE.exists():
+            data = json.loads(_DISMISSED_PROJECTS_FILE.read_text(encoding="utf-8"))
+            return data.get("dismissed", [])
+    except Exception:
+        pass
+    return []
+
+
+def _check_project_registration(api_url: str, cwd: str) -> tuple[bool, bool, dict]:
+    """Check if the current cwd is registered as an OS project.
+
+    Args:
+        api_url: Base API URL
+        cwd: Current working directory path
+
+    Returns:
+        Tuple of (is_registered, is_dismissed, project_info)
+        - is_registered: True if cwd matches a project in the OS
+        - is_dismissed: True if user previously dismissed registration for this cwd
+        - project_info: Project dict if registered, empty dict otherwise
+    """
+    cwd_norm = _normalize_cwd(cwd)
+
+    # Check dismissed list first (no API call needed)
+    dismissed = _load_dismissed_projects()
+    is_dismissed = cwd_norm in dismissed
+
+    # Call /api/context/resolve with auto_create=false to check registration
+    try:
+        payload = json.dumps({"cwd": cwd, "auto_create": False}).encode("utf-8")
+        req = urllib.request.Request(
+            f"{api_url}/api/context/resolve",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            project_id = result.get("project_id") or (result.get("project", {}) or {}).get("id", "")
+            if project_id:
+                project_info = result.get("project") or {"id": project_id}
+                return True, is_dismissed, project_info
+    except Exception:
+        # API unreachable or endpoint missing — fall back to projects list matching
+        pass
+
+    return False, is_dismissed, {}
+
+
 def _check_teams_dir_cleanup() -> str | None:
     """Scan ~/.claude/teams/ and warn if too many team directories accumulate."""
     teams_dir = Path.home() / ".claude" / "teams"
@@ -336,22 +396,35 @@ def _build_briefing() -> str:
         teams_data = f_teams.result()
         briefings_early = f_briefings.result()
 
-    # Resolve matched project from the already-fetched projects list
-    project_matched = False
+    # Resolve matched project: first try /api/context/resolve, then fall back to list matching
+    is_registered, is_dismissed, reg_project_info = _check_project_registration(API_URL, cwd)
+
+    # If context/resolve didn't confirm registration, fall back to already-fetched projects list
     matched_project_id = ""
-    if projects_data and projects_data.get("data"):
+    if is_registered:
+        matched_project_id = (reg_project_info.get("id") or "")
+    elif projects_data and projects_data.get("data"):
         for proj in projects_data["data"]:
             rp = (proj.get("root_path") or "").replace("\\", "/").rstrip("/")
             if rp and cwd.rstrip("/").lower().startswith(rp.lower()):
-                project_matched = True
+                is_registered = True
                 matched_project_id = proj.get("id", "")
                 break
-    if not project_matched:
-        lines.append("=== 项目未注册 ===")
-        lines.append(f"当前目录 {cwd} 尚未注册到AI Team OS。")
-        lines.append("如需OS管理此项目，请执行: project_create(name='项目名', root_path='" + cwd + "')")
-        lines.append("如不需要，可忽略此提示。OS功能（任务墙、团队管理等）在未注册项目中不可用。")
-        lines.append("")
+
+    if not is_registered:
+        if not is_dismissed:
+            dir_name = Path(cwd).name or cwd
+            lines.append("⚠️ 当前目录未注册到 AI Team OS 项目系统：")
+            lines.append(f"   {cwd}")
+            lines.append("")
+            lines.append("此项目是否需要注册？注册后可使用：")
+            lines.append("- 任务墙/会议/报告/Dashboard 完整功能")
+            lines.append("- 项目隔离和级联管理")
+            lines.append("")
+            lines.append(f"→ 用户说\"注册\"/\"是\"/\"好\" → 执行: project_create(name='{dir_name}', root_path='{cwd}')")
+            lines.append("→ 用户说\"不用\"/\"不注册\"/\"不要\" → 执行: dismiss_project_registration(cwd='" + cwd + "')")
+            lines.append("")
+        # If dismissed, silently skip — no prompt shown
 
     # Fetch task-wall once (used for both top5 and in-progress sections)
     wall_data = None
@@ -446,10 +519,10 @@ def _build_briefing() -> str:
     lines.append("请在session开始后立即执行以下操作:")
     lines.append("1. 调用 CronCreate 设置定时唤醒（每30分钟），prompt模板:")
     lines.append(
-        '   "【自动唤醒】先读取 ~/.claude/context-monitor.json 获取上下文使用比例并报告。'
+        '   "【自动唤醒】hook已自动监控上下文使用率（>=80%会警告，>=90%紧急）。'
         "然后：1.有待办→自主推进常规任务，需用户决策的用briefing_add记录；"
         "2.无待办→主动行动：研究竞品/新技术、组织会议讨论规划、审查代码、优化功能；"
-        '3.上下文>80%→保存进度到记忆，提醒开新session"'
+        '3.收到CONTEXT CRITICAL→保存进度到记忆，提醒开新session"'
     )
     lines.append("2. 如有待决简报，在用户首次发言时汇报")
     lines.append("")

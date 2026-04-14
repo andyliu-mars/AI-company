@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -12,6 +12,7 @@ from aiteam.api.exceptions import NotFoundError
 from aiteam.api.schemas import (
     APIListResponse,
     APIResponse,
+    MeetingConcludeBody,
     MeetingCreate,
     MeetingMessageCreate,
 )
@@ -38,6 +39,7 @@ async def create_meeting(
         team_id=team_id,
         topic=body.topic,
         participants=body.participants,
+        meta_json=body.meta_json,
     )
     await event_bus.emit(
         "meeting.started",
@@ -128,12 +130,35 @@ async def create_meeting_message(
     if body.agent_name not in (meeting.participants or []):
         updated_participants = list(meeting.participants or []) + [body.agent_name]
         await repo.update_meeting(meeting_id, participants=updated_participants)
+
+    # Impersonation audit: flag when caller_agent_id is set and differs from agent_id
+    msg_metadata: dict = {}
+    caller = body.caller_agent_id.strip() if body.caller_agent_id else ""
+    is_impersonation = bool(caller and caller != body.agent_id)
+    if is_impersonation:
+        msg_metadata = {
+            "impersonation": True,
+            "actual_author": caller,
+        }
+        await event_bus.emit(
+            "meeting.impersonation",
+            f"meeting:{meeting_id}",
+            {
+                "meeting_id": meeting_id,
+                "claimed_agent_id": body.agent_id,
+                "claimed_agent_name": body.agent_name,
+                "actual_author": caller,
+                "round_number": body.round_number,
+            },
+        )
+
     message = await repo.create_meeting_message(
         meeting_id=meeting_id,
         agent_id=body.agent_id,
         agent_name=body.agent_name,
         content=body.content,
         round_number=body.round_number,
+        msg_metadata=msg_metadata,
     )
     await event_bus.emit(
         "meeting.message",
@@ -145,9 +170,11 @@ async def create_meeting_message(
             "agent_name": body.agent_name,
             "content": body.content,
             "round_number": body.round_number,
+            "impersonation": is_impersonation,
         },
     )
-    return APIResponse(data=message, message="消息发送成功")
+    resp_msg = "消息发送成功（已标记代打审计）" if is_impersonation else "消息发送成功"
+    return APIResponse(data=message, message=resp_msg)
 
 
 @router.put(
@@ -156,15 +183,53 @@ async def create_meeting_message(
 )
 async def conclude_meeting(
     meeting_id: str,
+    body: MeetingConcludeBody = MeetingConcludeBody(),
     repo: StorageRepository = Depends(get_repository),
     event_bus: EventBus = Depends(get_event_bus),
     memory_store: MemoryStore = Depends(get_memory_store),
 ) -> APIResponse[Meeting]:
-    """Conclude a meeting."""
+    """Conclude a meeting.
+
+    validate_attendance=True (default): blocks conclude if expected participants haven't spoken.
+    force=True: bypasses attendance check but records a warning event.
+    """
     meeting = await repo.get_meeting(meeting_id)
     if meeting is None:
         msg = f"会议 '{meeting_id}' 不存在"
         raise NotFoundError(msg)
+
+    # Attendance validation
+    if body.validate_attendance:
+        messages = await repo.list_meeting_messages(meeting_id)
+        meta = getattr(meeting, "meta_json", None) or {}
+        expected = meta.get("expected_participants", meeting.participants or [])
+        spoken_ids = {m.agent_id for m in messages}
+        spoken_names = {m.agent_name for m in messages}
+        missing = [p for p in expected if p not in spoken_ids and p not in spoken_names]
+
+        if missing and not body.force:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "参与者未全员发言，无法结束会议",
+                    "missing": missing,
+                    "spoken": list(spoken_names),
+                    "hint": "设置 force=true 可强制结束，但会记录到事件日志",
+                },
+            )
+
+        if missing and body.force:
+            await event_bus.emit(
+                "meeting.forced_conclude_with_missing",
+                f"meeting:{meeting_id}",
+                {
+                    "meeting_id": meeting_id,
+                    "missing_participants": missing,
+                    "spoken_participants": list(spoken_names),
+                    "topic": meeting.topic,
+                },
+            )
+
     updated = await repo.update_meeting(
         meeting_id,
         status=MeetingStatus.CONCLUDED,
@@ -181,18 +246,63 @@ async def conclude_meeting(
     )
 
     # Auto-save meeting conclusion to team memory
-    messages = await repo.list_meeting_messages(meeting_id)
-    if messages:
-        last_msg = messages[-1]
-        conclusion = last_msg.content[:500]
+    all_messages = await repo.list_meeting_messages(meeting_id)
+    if all_messages:
+        conclusion_text = body.summary or all_messages[-1].content[:500]
         await memory_store.store(
             scope="team",
             scope_id=updated.team_id,
-            content=f"[会议决策] {updated.topic}: {conclusion}",
+            content=f"[会议决策] {updated.topic}: {conclusion_text}",
             metadata={"meeting_id": meeting_id, "topic": updated.topic},
         )
 
     return APIResponse(data=updated, message="会议已结束，结论已保存到团队记忆")
+
+
+async def attendance_check_logic(meeting_id: str, repo: StorageRepository) -> dict:
+    """Core attendance check logic — extracted for testability."""
+    meeting = await repo.get_meeting(meeting_id)
+    if meeting is None:
+        raise NotFoundError(f"会议 '{meeting_id}' 不存在")
+
+    meta = meeting.meta_json or {}
+    expected = meta.get("expected_participants", meeting.participants)
+    messages = await repo.list_meeting_messages(meeting_id)
+    current_round = max((m.round_number for m in messages), default=1)
+    spoken = list({m.agent_name for m in messages if m.round_number == current_round})
+    pending = [p for p in expected if p not in spoken]
+
+    round_started_at = meta.get("round_started_at")
+    timeout_seconds = 0
+    if round_started_at:
+        try:
+            started = datetime.fromisoformat(round_started_at)
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            timeout_seconds = int((datetime.now(timezone.utc) - started).total_seconds())
+        except Exception:
+            pass
+
+    return {
+        "success": True,
+        "meeting_id": meeting_id,
+        "round": current_round,
+        "expected": expected,
+        "spoken": spoken,
+        "pending": pending,
+        "timeout_in_seconds": timeout_seconds,
+    }
+
+
+@router.get(
+    "/api/meetings/{meeting_id}/attendance",
+)
+async def meeting_attendance_check(
+    meeting_id: str,
+    repo: StorageRepository = Depends(get_repository),
+) -> dict:
+    """Check which expected participants have spoken in the current round."""
+    return await attendance_check_logic(meeting_id, repo)
 
 
 @router.put(

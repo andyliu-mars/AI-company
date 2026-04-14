@@ -156,6 +156,44 @@ def register(mcp):
         )
 
     @mcp.tool()
+    def dismiss_project_registration(cwd: str = "") -> dict[str, Any]:
+        """Mark current cwd as dismissed for project registration — won't ask again.
+
+        Args:
+            cwd: Directory path to dismiss (empty = use current cwd)
+
+        Returns:
+            Status dict with dismissed_count and normalized cwd
+        """
+        import json as _json
+        import os as _os
+        from datetime import datetime
+        from pathlib import Path as _Path
+
+        if not cwd:
+            cwd = _os.getcwd()
+        cwd_norm = str(_Path(cwd).resolve()).replace("\\", "/").lower()
+
+        dismissed_file = _Path.home() / ".claude" / "data" / "ai-team-os" / "dismissed_projects.json"
+        dismissed_file.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            data = (
+                _json.loads(dismissed_file.read_text(encoding="utf-8"))
+                if dismissed_file.exists()
+                else {"dismissed": []}
+            )
+        except Exception:
+            data = {"dismissed": []}
+
+        if cwd_norm not in data["dismissed"]:
+            data["dismissed"].append(cwd_norm)
+        data["updated_at"] = datetime.now().isoformat()
+
+        dismissed_file.write_text(_json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        return {"success": True, "dismissed_count": len(data["dismissed"]), "cwd": cwd_norm}
+
+    @mcp.tool()
     def phase_list(project_id: str) -> dict[str, Any]:
         """List all Phases and their statuses for a project.
 

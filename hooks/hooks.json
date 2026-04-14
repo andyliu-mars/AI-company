@@ -78,7 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/context_monitor.py\"",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/context_tracker.py\"",
             "timeout": 3000
           }
         ]

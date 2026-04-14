@@ -161,7 +161,7 @@ def test_git_auto_commit_blocks_sensitive_files(git_repo):
     registered = {}
 
     class MockMcp:
-        def tool(self):
+        def tool(self, *args, **kwargs):
             def decorator(fn):
                 registered[fn.__name__] = fn
                 return fn
@@ -185,7 +185,7 @@ def test_git_auto_commit_blocks_key_files(git_repo):
     registered = {}
 
     class MockMcp:
-        def tool(self):
+        def tool(self, *args, **kwargs):
             def decorator(fn):
                 registered[fn.__name__] = fn
                 return fn
@@ -205,7 +205,7 @@ def test_git_auto_commit_no_changes(git_repo):
     registered = {}
 
     class MockMcp:
-        def tool(self):
+        def tool(self, *args, **kwargs):
             def decorator(fn):
                 registered[fn.__name__] = fn
                 return fn
@@ -226,7 +226,7 @@ def test_git_auto_commit_success(git_repo):
     registered = {}
 
     class MockMcp:
-        def tool(self):
+        def tool(self, *args, **kwargs):
             def decorator(fn):
                 registered[fn.__name__] = fn
                 return fn
@@ -255,7 +255,7 @@ def test_git_auto_commit_not_a_repo(tmp_path):
     registered = {}
 
     class MockMcp:
-        def tool(self):
+        def tool(self, *args, **kwargs):
             def decorator(fn):
                 registered[fn.__name__] = fn
                 return fn
@@ -279,7 +279,7 @@ def _make_pr_fn():
     registered = {}
 
     class MockMcp:
-        def tool(self):
+        def tool(self, *args, **kwargs):
             def decorator(fn):
                 registered[fn.__name__] = fn
                 return fn
@@ -354,7 +354,7 @@ def test_git_status_check_not_a_repo(tmp_path):
     registered = {}
 
     class MockMcp:
-        def tool(self):
+        def tool(self, *args, **kwargs):
             def decorator(fn):
                 registered[fn.__name__] = fn
                 return fn
@@ -372,7 +372,7 @@ def test_git_status_check_clean_repo(git_repo):
     registered = {}
 
     class MockMcp:
-        def tool(self):
+        def tool(self, *args, **kwargs):
             def decorator(fn):
                 registered[fn.__name__] = fn
                 return fn

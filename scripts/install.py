@@ -67,7 +67,7 @@ HOOK_EVENTS: dict = {
         [("send_event Stop", 2000)],
     ],
     "UserPromptSubmit": [
-        [("context_monitor", 3000)],
+        [("context_tracker", 3000)],
     ],
     "PreCompact": [
         [("pre_compact_save", 5000)],
@@ -116,7 +116,7 @@ def _build_command(module_entry: str) -> str:
 
     Uses the absolute path of the installer's Python so the command works even
     when CC activates a project .venv that shadows the system Python.
-    module_entry examples: 'send_event SubagentStart', 'context_monitor'
+    module_entry examples: 'send_event SubagentStart', 'context_tracker'
     """
     parts = module_entry.split(" ", 1)
     module_name = parts[0]
@@ -372,7 +372,7 @@ def run_check() -> int:
         "send_event",
         "workflow_reminder",
         "session_bootstrap",
-        "context_monitor",
+        "context_tracker",
         "pre_compact_save",
     ]
     for module_name in required_hooks:

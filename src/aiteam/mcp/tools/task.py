@@ -234,7 +234,7 @@ def register(mcp):
         """
         return _api_call("GET", f"/api/tasks/{task_id}/subtasks")
 
-    @mcp.tool()
+    @mcp.tool(meta={"anthropic/maxResultSizeChars": 500000})
     def taskwall_view(
         team_id: str,
         horizon: str = "",
@@ -261,7 +261,7 @@ def register(mcp):
         qs = f"?{'&'.join(params)}" if params else ""
         return _api_call("GET", f"/api/teams/{team_id}/task-wall{qs}")
 
-    @mcp.tool()
+    @mcp.tool(meta={"anthropic/maxResultSizeChars": 500000})
     def task_list_project(
         project_id: str = "",
         horizon: str = "",

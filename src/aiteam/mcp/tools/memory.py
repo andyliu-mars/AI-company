@@ -11,7 +11,7 @@ from aiteam.mcp._base import _api_call, _resolve_team_id
 def register(mcp):
     """Register all memory-related MCP tools."""
 
-    @mcp.tool()
+    @mcp.tool(meta={"anthropic/maxResultSizeChars": 500000})
     def memory_search(
         query: str = "",
         scope: str = "global",
@@ -32,7 +32,7 @@ def register(mcp):
         params = urllib.parse.urlencode({"scope": scope, "scope_id": scope_id, "query": query, "limit": limit})
         return _api_call("GET", f"/api/memory?{params}")
 
-    @mcp.tool()
+    @mcp.tool(meta={"anthropic/maxResultSizeChars": 500000})
     def team_knowledge(
         team_id: str = "",
         type: str = "",

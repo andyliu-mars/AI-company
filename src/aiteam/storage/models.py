@@ -434,6 +434,7 @@ class MeetingModel(Base):
     status: Mapped[str] = mapped_column(String(20), default="active")
     participants: Mapped[list[str]] = mapped_column(JSON, default=list)
     project_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    meta_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     concluded_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -446,6 +447,7 @@ class MeetingModel(Base):
             status=MeetingStatus(self.status),
             participants=self.participants or [],
             project_id=self.project_id,
+            meta_json=self.meta_json or {},
             created_at=self.created_at,
             concluded_at=self.concluded_at,
         )
@@ -460,6 +462,7 @@ class MeetingModel(Base):
             status=meeting.status.value,
             participants=meeting.participants,
             project_id=meeting.project_id,
+            meta_json=meeting.meta_json,
             created_at=meeting.created_at,
             concluded_at=meeting.concluded_at,
         )
@@ -477,6 +480,7 @@ class MeetingMessageModel(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     round_number: Mapped[int] = mapped_column(default=1)
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     def to_pydantic(self) -> MeetingMessage:
         """Convert to Pydantic model."""
@@ -488,6 +492,7 @@ class MeetingMessageModel(Base):
             content=self.content,
             round_number=self.round_number,
             timestamp=self.timestamp,
+            msg_metadata=self.metadata_json or {},
         )
 
     @staticmethod
@@ -501,6 +506,7 @@ class MeetingMessageModel(Base):
             content=msg.content,
             round_number=msg.round_number,
             timestamp=msg.timestamp,
+            metadata_json=msg.msg_metadata or {},
         )
 
 

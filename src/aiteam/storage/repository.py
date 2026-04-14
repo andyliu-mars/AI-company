@@ -951,12 +951,14 @@ class StorageRepository:
         team_id: str,
         topic: str,
         participants: list[str] | None = None,
+        meta_json: dict | None = None,
     ) -> Meeting:
         """Create a meeting."""
         meeting = Meeting(
             team_id=team_id,
             topic=topic,
             participants=participants or [],
+            meta_json=meta_json or {},
         )
         orm = MeetingModel.from_pydantic(meeting)
         async with get_session(self._db_url) as session:
@@ -1020,6 +1022,7 @@ class StorageRepository:
         agent_name: str,
         content: str,
         round_number: int = 1,
+        msg_metadata: dict | None = None,
     ) -> MeetingMessage:
         """Create a meeting message."""
         message = MeetingMessage(
@@ -1028,6 +1031,7 @@ class StorageRepository:
             agent_name=agent_name,
             content=content,
             round_number=round_number,
+            msg_metadata=msg_metadata or {},
         )
         orm = MeetingMessageModel.from_pydantic(message)
         async with get_session(self._db_url) as session:

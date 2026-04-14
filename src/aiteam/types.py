@@ -342,6 +342,7 @@ class Meeting(BaseModel):
     status: MeetingStatus = MeetingStatus.ACTIVE
     participants: list[str] = Field(default_factory=list)
     project_id: str | None = None
+    meta_json: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.now)
     concluded_at: datetime | None = None
 
@@ -356,6 +357,7 @@ class MeetingMessage(BaseModel):
     content: str
     round_number: int = 1
     timestamp: datetime = Field(default_factory=datetime.now)
+    msg_metadata: dict[str, Any] = Field(default_factory=dict)  # audit: impersonation, actual_author, etc.
 
 
 class AgentActivity(BaseModel):

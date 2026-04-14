@@ -265,7 +265,7 @@ class _ToolCapture:
     """Minimal mock that captures functions passed to @mcp.tool()."""
     def __init__(self):
         self.tools = {}
-    def tool(self):
+    def tool(self, *args, **kwargs):
         def decorator(fn):
             self.tools[fn.__name__] = fn
             return fn

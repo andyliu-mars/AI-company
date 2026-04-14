@@ -35,12 +35,24 @@ async def create_meeting(
     event_bus: EventBus = Depends(get_event_bus),
 ) -> APIResponse[Meeting]:
     """Create a meeting."""
-    meeting = await repo.create_meeting(
-        team_id=team_id,
-        topic=body.topic,
-        participants=body.participants,
-        meta_json=body.meta_json,
-    )
+    # Resolve team_id: accept both UUID and team name for backward compatibility
+    resolved_team_id = team_id
+    team = await repo.get_team(team_id)
+    if team is None:
+        team = await repo.get_team_by_name(team_id)
+        if team is None:
+            raise HTTPException(status_code=404, detail=f"团队 '{team_id}' 不存在")
+        resolved_team_id = team.id
+
+    try:
+        meeting = await repo.create_meeting(
+            team_id=resolved_team_id,
+            topic=body.topic,
+            participants=body.participants,
+            meta_json=body.meta_json,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"创建会议失败: {exc}") from exc
     await event_bus.emit(
         "meeting.started",
         f"meeting:{meeting.id}",

@@ -104,6 +104,24 @@ async def get_session(
             raise
 
 
+def _sqlite_migrate(db_path: str) -> None:
+    """Idempotent schema migrations for SQLite DBs using stdlib sqlite3.
+
+    SQLAlchemy create_all only creates missing tables, not missing columns.
+    Each ALTER here is guarded by PRAGMA table_info so it is safe to rerun.
+    """
+    import sqlite3
+
+    con = sqlite3.connect(db_path)
+    try:
+        cols = {row[1] for row in con.execute("PRAGMA table_info(meetings)")}
+        if "meta_json" not in cols:
+            con.execute("ALTER TABLE meetings ADD COLUMN meta_json JSON DEFAULT NULL")
+            con.commit()
+    finally:
+        con.close()
+
+
 async def init_db(db_url: str | None = None) -> None:
     """Initialize the database and create all tables.
 
@@ -115,6 +133,7 @@ async def init_db(db_url: str | None = None) -> None:
     """
     url = db_url or DEFAULT_DB_URL
 
+    db_path_str = ""
     # Ensure the directory for the SQLite database file exists
     if "sqlite" in url:
         # Extract file path from URL: sqlite+aiosqlite:///path/to/db
@@ -126,6 +145,10 @@ async def init_db(db_url: str | None = None) -> None:
     engine = get_engine(url)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Run idempotent column migrations (create_all won't add missing columns)
+    if db_path_str:
+        _sqlite_migrate(db_path_str)
 
 
 async def close_db() -> None:

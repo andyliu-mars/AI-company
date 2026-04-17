@@ -16,13 +16,22 @@ _SUBAGENT_MARKER_DIR = os.path.join(
 )
 
 
+def _safe_session_id(session_id: str) -> str:
+    """Strip anything that isn't alphanumeric, hyphen, or underscore to prevent path traversal."""
+    import re
+    return re.sub(r"[^a-zA-Z0-9_-]", "", session_id)
+
+
 def _mark_subagent_session(session_id: str) -> None:
     """Touch a marker file so workflow_reminder can skip Leader checks for this session."""
     if not session_id:
         return
+    safe_id = _safe_session_id(session_id)
+    if not safe_id:
+        return
     try:
         os.makedirs(_SUBAGENT_MARKER_DIR, exist_ok=True)
-        marker = os.path.join(_SUBAGENT_MARKER_DIR, session_id)
+        marker = os.path.join(_SUBAGENT_MARKER_DIR, safe_id)
         with open(marker, "w", encoding="utf-8") as f:
             f.write("")
     except Exception:

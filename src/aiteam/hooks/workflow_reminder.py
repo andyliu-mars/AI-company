@@ -20,12 +20,20 @@ _PORT_FILE = os.path.join(_SUPERVISOR_STATE_DIR, "api_port.txt")
 _SUBAGENT_MARKER_DIR = os.path.join(_SUPERVISOR_STATE_DIR, "subagent_sessions")
 
 
+def _safe_session_id(session_id: str) -> str:
+    """Strip anything that isn't alphanumeric, hyphen, or underscore to prevent path traversal."""
+    return re.sub(r"[^a-zA-Z0-9_-]", "", session_id)
+
+
 def _is_subagent_session(session_id: str) -> bool:
     """Return True if the given session was marked as a sub-agent by SubagentStart."""
     if not session_id:
         return False
+    safe_id = _safe_session_id(session_id)
+    if not safe_id:
+        return False
     try:
-        return os.path.isfile(os.path.join(_SUBAGENT_MARKER_DIR, session_id))
+        return os.path.isfile(os.path.join(_SUBAGENT_MARKER_DIR, safe_id))
     except Exception:
         return False
 

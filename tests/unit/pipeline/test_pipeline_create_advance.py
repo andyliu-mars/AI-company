@@ -282,3 +282,70 @@ def test_advance_on_last_stage_returns_completed_signal(app_client):
     assert data["success"] is False
     assert data.get("pipeline_completed") is True
     assert "最后阶段" in data["error"] or "已完成" in data["error"]
+
+
+# ============================================================
+# TC-AUTOPILOT-01..03: autopilot endpoint
+# ============================================================
+
+
+def test_autopilot_enable(app_client, repo):
+    """TC-AUTOPILOT-01: POST autopilot active=True sets autopilot_active and records started_at."""
+    _, task_id = _make_task(app_client)
+
+    # Create pipeline first
+    app_client.post(f"/api/tasks/{task_id}/pipeline/v2", json={"task_type": "feature"})
+
+    resp = app_client.post(
+        f"/api/tasks/{task_id}/pipeline/v2/autopilot",
+        json={"active": True},
+    )
+    data = resp.json()
+    assert data["success"] is True
+    assert data["data"]["autopilot_active"] is True
+    assert data["data"]["autopilot_started_at"] is not None
+
+    # Verify persisted
+    state = _run(repo.get_pipeline_state(task_id))
+    assert state is not None
+    assert state.autopilot_active is True
+
+
+def test_autopilot_disable(app_client, repo):
+    """TC-AUTOPILOT-02: POST autopilot active=False sets autopilot_active=False."""
+    _, task_id = _make_task(app_client)
+
+    app_client.post(f"/api/tasks/{task_id}/pipeline/v2", json={"task_type": "feature"})
+    # Enable first
+    app_client.post(
+        f"/api/tasks/{task_id}/pipeline/v2/autopilot",
+        json={"active": True},
+    )
+
+    # Now disable
+    resp = app_client.post(
+        f"/api/tasks/{task_id}/pipeline/v2/autopilot",
+        json={"active": False},
+    )
+    data = resp.json()
+    assert data["success"] is True
+    assert data["data"]["autopilot_active"] is False
+
+    state = _run(repo.get_pipeline_state(task_id))
+    assert state is not None
+    assert state.autopilot_active is False
+
+
+def test_autopilot_enable_with_duration(app_client, repo):
+    """TC-AUTOPILOT-03: POST autopilot with max_duration_minutes persists the value."""
+    _, task_id = _make_task(app_client)
+
+    app_client.post(f"/api/tasks/{task_id}/pipeline/v2", json={"task_type": "feature"})
+
+    resp = app_client.post(
+        f"/api/tasks/{task_id}/pipeline/v2/autopilot",
+        json={"active": True, "max_duration_minutes": 240},
+    )
+    data = resp.json()
+    assert data["success"] is True
+    assert data["data"]["autopilot_max_duration_minutes"] == 240

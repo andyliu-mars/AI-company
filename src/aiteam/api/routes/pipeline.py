@@ -265,6 +265,67 @@ async def pipeline_v2_status(
     }
 
 
+@router.post("/api/tasks/{task_id}/pipeline/v2/autopilot")
+async def pipeline_v2_autopilot(
+    task_id: str,
+    body: dict[str, Any] | None = None,
+    repo: StorageRepository = Depends(get_repository),
+) -> dict[str, Any]:
+    """Set autopilot_active flag on a task's pipeline.
+
+    Body:
+        active: true to enable, false to disable (required)
+        max_duration_minutes: optional int, only used when active=true
+    """
+    from datetime import datetime, timezone
+    from aiteam.pipeline.clock import WallClock
+
+    body = body or {}
+    if "active" not in body:
+        return {"success": False, "error": "缺少 active 参数"}
+
+    active: bool = bool(body["active"])
+    max_duration_minutes: int | None = body.get("max_duration_minutes")
+
+    task = await repo.get_task(task_id)
+    if task is None:
+        return {"success": False, "error": f"任务 {task_id} 不存在"}
+
+    state = await repo.get_pipeline_state(task_id)
+    if state is None or state.current_stage is None:
+        return {"success": False, "error": f"任务 {task_id} 尚未初始化 pipeline"}
+
+    clock = WallClock()
+    updates: dict[str, Any] = {"autopilot_active": active}
+
+    if active:
+        updates["autopilot_started_at"] = clock.now().isoformat()
+        if max_duration_minutes is not None:
+            updates["autopilot_max_duration_minutes"] = max_duration_minutes
+    # When deactivating, preserve autopilot_started_at for history
+
+    await repo.set_pipeline_state(task_id, clock=clock, **updates)
+
+    state = await repo.get_pipeline_state(task_id)
+    pipeline_config = {}
+    task_refreshed = await repo.get_task(task_id)
+    if task_refreshed:
+        config = task_refreshed.config or {}
+        pipeline_config = config.get("pipeline", {}) if isinstance(config, dict) else {}
+
+    return {
+        "success": True,
+        "data": {
+            "task_id": task_id,
+            "autopilot_active": active,
+            "autopilot_started_at": pipeline_config.get("autopilot_started_at"),
+            "autopilot_max_duration_minutes": pipeline_config.get("autopilot_max_duration_minutes"),
+            "current_stage": state.current_stage if state else None,
+            "current_stage_class": state.current_stage_class if state else None,
+        },
+    }
+
+
 @router.post("/api/tasks/{task_id}/pipeline")
 async def create_pipeline(
     task_id: str,

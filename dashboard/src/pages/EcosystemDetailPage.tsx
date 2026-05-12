@@ -24,11 +24,13 @@ import {
   useEcosystemRepoDetail,
   useEcosystemRepoFull,
   useRetryFailedRepo,
+  useRepoEvents,
   CATEGORY_LABELS,
   DEEP_REVIEW_STATUS_LABELS,
   INTEGRATION_RECOMMENDATION_LABELS,
   STAGE_STATUS_LABELS,
   stageBadgeClass,
+  type RepoEvent,
 } from '@/api/ecosystem';
 import { CapabilityTags } from '@/components/ecosystem/CapabilityTags';
 import { DeepReviewSection } from '@/components/ecosystem/DeepReviewSection';
@@ -53,6 +55,7 @@ export function EcosystemDetailPage() {
 
   const retry = useRetryFailedRepo();
   const [retryDone, setRetryDone] = useState(false);
+  const { data: eventsData } = useRepoEvents(repoId ?? null, 50);
 
   if (isLoading) {
     return (
@@ -279,6 +282,12 @@ export function EcosystemDetailPage() {
           <TabsList variant="line" className="gap-3">
             <TabsTrigger value="overview">概览</TabsTrigger>
             <TabsTrigger value="research">研究历程</TabsTrigger>
+            <TabsTrigger value="events">
+              事件历史
+              {eventsData && eventsData.total > 0 && (
+                <span className="ml-1.5 text-xs text-muted-foreground">({eventsData.total})</span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-4 space-y-4">
@@ -429,6 +438,10 @@ export function EcosystemDetailPage() {
           <TabsContent value="research" className="mt-4">
             <ResearchTimeline profile={repo} reviews={full?.deep_reviews ?? []} />
           </TabsContent>
+
+          <TabsContent value="events" className="mt-4">
+            <EventTimeline events={eventsData?.events ?? []} />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
@@ -451,6 +464,112 @@ function MetaRow({
         {label}
       </span>
       <span className="font-medium text-right">{value}</span>
+    </div>
+  );
+}
+
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  discovered: '首次发现',
+  rescanned: '重新扫描',
+  topics_changed: 'Topics 变更',
+  stars_jumped: 'Stars 跳变',
+  status_changed: '状态变更',
+  archived: '已归档',
+  manual_pinned: '手动置顶',
+  manual_unpinned: '取消置顶',
+  removed_from_query: '查询消失',
+};
+
+const EVENT_TYPE_COLORS: Record<string, string> = {
+  discovered: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  rescanned: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
+  topics_changed: 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
+  stars_jumped: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  status_changed: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
+  archived: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
+  manual_pinned: 'bg-orange-500/15 text-orange-700 dark:text-orange-300',
+  manual_unpinned: 'bg-muted text-muted-foreground',
+  removed_from_query: 'bg-zinc-500/15 text-zinc-700 dark:text-zinc-300',
+};
+
+function formatEventPayload(event: RepoEvent): string {
+  const p = event.payload_json;
+  if (!p || Object.keys(p).length === 0) return '';
+  if (event.event_type === 'discovered') {
+    const stars = p.first_stars as number | undefined;
+    const query = p.source_query as string | undefined;
+    return [stars != null ? `⭐ ${stars}` : '', query ? `via "${query}"` : ''].filter(Boolean).join(' · ');
+  }
+  if (event.event_type === 'topics_changed') {
+    const before = (p.before as string[]) ?? [];
+    const after = (p.after as string[]) ?? [];
+    const added = after.filter((t) => !before.includes(t));
+    const removed = before.filter((t) => !after.includes(t));
+    const parts: string[] = [];
+    if (added.length) parts.push(`+${added.join(', ')}`);
+    if (removed.length) parts.push(`-${removed.join(', ')}`);
+    return parts.join(' · ');
+  }
+  if (event.event_type === 'stars_jumped') {
+    const before = p.before as number | undefined;
+    const after = p.after as number | undefined;
+    const pct = p.pct as number | undefined;
+    return `${before ?? '?'} → ${after ?? '?'} (${pct != null ? (pct > 0 ? '+' : '') + pct + '%' : ''})`;
+  }
+  if (event.event_type === 'status_changed') {
+    return `${p.from ?? event.from_status ?? '?'} → ${p.to ?? event.to_status ?? '?'}`;
+  }
+  return JSON.stringify(p).slice(0, 120);
+}
+
+function EventTimeline({ events }: { events: RepoEvent[] }) {
+  if (events.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+          暂无事件记录 — 事件将在扫描或手动操作时自动生成
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {events.map((ev) => {
+        const label = EVENT_TYPE_LABELS[ev.event_type] ?? ev.event_type;
+        const colorClass = EVENT_TYPE_COLORS[ev.event_type] ?? 'bg-muted text-muted-foreground';
+        const detail = formatEventPayload(ev);
+        const date = new Date(ev.triggered_at).toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        return (
+          <div key={ev.id} className="flex items-start gap-3 py-2 border-b border-border/30 last:border-0">
+            <div className="mt-0.5 shrink-0">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${colorClass}`}>
+                  {label}
+                </span>
+                {detail && (
+                  <span className="text-xs text-muted-foreground truncate max-w-xs">{detail}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                <span>{date}</span>
+                {ev.source && ev.source !== 'scanner' && (
+                  <span className="text-xs opacity-60">· {ev.source}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

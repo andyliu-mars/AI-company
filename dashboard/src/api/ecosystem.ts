@@ -599,3 +599,35 @@ export function useLifecycleRequestBatch() {
       }),
   });
 }
+
+// v1.6.0 event sourcing
+
+export interface RepoEvent {
+  id: string;
+  event_type: string;
+  payload_json: Record<string, unknown>;
+  source: string;
+  scan_run_id: string | null;
+  from_status: string | null;
+  to_status: string | null;
+  reason: string | null;
+  triggered_at: string;
+}
+
+export interface RepoEventsResponse {
+  success: boolean;
+  repo_id: string;
+  events: RepoEvent[];
+  total: number;
+}
+
+/** GET /api/ecosystem/repos/{repoId}/events */
+export function useRepoEvents(repoId: string | null, limit = 50) {
+  return useQuery({
+    queryKey: ['ecosystem', 'repo-events', repoId, limit],
+    queryFn: () =>
+      apiFetch<RepoEventsResponse>(`/api/ecosystem/repos/${repoId}/events?limit=${limit}`),
+    enabled: !!repoId,
+    staleTime: 30_000,
+  });
+}

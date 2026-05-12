@@ -38,6 +38,7 @@ from aiteam.types import (
     EcosystemProjectSettings,
     EcosystemRelation,
     EcosystemRelationType,
+    EcosystemRepoEvent,
     EcosystemRepoProfile,
     EcosystemRepoStatusSnapshot,
     EcosystemRepoTag,
@@ -1836,4 +1837,67 @@ class EcosystemStatusChangeModel(Base):
             scan_run_id=sc.scan_run_id,
             reason=sc.reason,
             triggered_at=sc.triggered_at,
+        )
+
+
+class EcosystemRepoEventModel(Base):
+    """Full event log for every operation on an ecosystem repo (v1.6.0 event sourcing)."""
+
+    __tablename__ = "ecosystem_repo_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    repo_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    project_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    payload_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source: Mapped[str] = mapped_column(String(20), default="scanner")
+    scan_run_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    from_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    to_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    triggered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+
+    def to_pydantic(self) -> EcosystemRepoEvent:
+        import json
+
+        payload: dict[str, Any] = {}
+        if self.payload_json:
+            try:
+                payload = json.loads(self.payload_json)
+            except Exception:
+                pass
+        return EcosystemRepoEvent(
+            id=self.id,
+            repo_id=self.repo_id,
+            project_id=self.project_id,
+            event_type=self.event_type,
+            payload_json=payload,
+            source=self.source or "scanner",
+            scan_run_id=self.scan_run_id,
+            from_status=self.from_status,
+            to_status=self.to_status,
+            reason=self.reason,
+            triggered_at=self.triggered_at or datetime.now(timezone.utc),
+        )
+
+    @classmethod
+    def from_pydantic(cls, ev: EcosystemRepoEvent) -> "EcosystemRepoEventModel":
+        import json
+
+        return cls(
+            id=ev.id,
+            repo_id=ev.repo_id,
+            project_id=ev.project_id,
+            event_type=ev.event_type,
+            payload_json=json.dumps(ev.payload_json) if ev.payload_json else None,
+            source=ev.source,
+            scan_run_id=ev.scan_run_id,
+            from_status=ev.from_status,
+            to_status=ev.to_status,
+            reason=ev.reason,
+            triggered_at=ev.triggered_at,
         )

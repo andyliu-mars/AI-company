@@ -893,6 +893,27 @@ class EcosystemStatusChange(BaseModel):
     triggered_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
 
+class EcosystemRepoEvent(BaseModel):
+    """Full event log for every operation on an ecosystem repo.
+
+    Replaces index_diffs as source-of-truth for change tracking. Diff views
+    are computed dynamically by grouping events over a time window.
+    """
+
+    id: str = Field(default_factory=_new_id)
+    repo_id: str
+    project_id: str | None = None
+    event_type: str  # 'discovered'|'rescanned'|'topics_changed'|'stars_jumped'|'status_changed'|'archived'|'manual_pinned'|'manual_unpinned'|'removed_from_query'
+    payload_json: dict[str, Any] = Field(default_factory=dict)
+    source: str = "scanner"  # 'scanner' | 'manual' | 'api'
+    scan_run_id: str | None = None
+    # Kept for status_changed compat with EcosystemStatusChange
+    from_status: str | None = None
+    to_status: str | None = None
+    reason: str | None = None
+    triggered_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
 # ============================================================
 # Result types
 # ============================================================

@@ -42,6 +42,7 @@ from typing import Any, Awaitable, Callable
 
 from aiteam.storage.repository import StorageRepository
 from aiteam.types import (
+    EcosystemRepoEvent,
     EcosystemRepoProfile,
     EcosystemScanRun,
     EcosystemScanStrategy,
@@ -355,6 +356,7 @@ class EcosystemScanner:
                     # v1.5.0-B: notify Stage 0 queue worker so the new
                     # repo gets an immediate shallow-scan dispatch. Look
                     # up the persisted row to obtain the assigned id.
+                    persisted: EcosystemRepoProfile | None = None
                     if self._on_new_profile is not None:
                         try:
                             persisted = await self._repo.get_ecosystem_profile(
@@ -366,8 +368,67 @@ class EcosystemScanner:
                             errors.append(
                                 f"on_new_profile {fn}: {hook_exc!s}"
                             )
+                    # v1.6.0: write 'discovered' event
+                    try:
+                        if persisted is None:
+                            persisted = await self._repo.get_ecosystem_profile(
+                                fn, project_id=self._project_id or None
+                            )
+                        if persisted is not None:
+                            await self._repo.create_repo_event(EcosystemRepoEvent(
+                                repo_id=persisted.id,
+                                project_id=self._project_id or None,
+                                event_type="discovered",
+                                payload_json={
+                                    "first_topics": repo_data.get("topics") or [],
+                                    "first_stars": repo_data.get("stars", 0),
+                                    "source_query": repo_matched_queries.get(fn, [""])[0],
+                                },
+                                source="scanner",
+                                scan_run_id=scan_run.id,
+                            ))
+                    except Exception as ev_exc:
+                        errors.append(f"event:discovered {fn}: {ev_exc!s}")
                 else:
                     updated_count += 1
+                    # v1.6.0: detect metadata changes and write events
+                    try:
+                        events_to_write: list[EcosystemRepoEvent] = []
+                        old_topics = set(existing.topics or [])
+                        new_topics = set(repo_data.get("topics") or [])
+                        if old_topics != new_topics:
+                            events_to_write.append(EcosystemRepoEvent(
+                                repo_id=existing.id,
+                                project_id=self._project_id or None,
+                                event_type="topics_changed",
+                                payload_json={
+                                    "before": sorted(old_topics),
+                                    "after": sorted(new_topics),
+                                },
+                                source="scanner",
+                                scan_run_id=scan_run.id,
+                            ))
+                        old_stars = existing.stars or 0
+                        new_stars = repo_data.get("stars", 0)
+                        if old_stars > 0 and new_stars > 0:
+                            pct_change = (new_stars - old_stars) / old_stars
+                            if abs(pct_change) >= 0.10:
+                                events_to_write.append(EcosystemRepoEvent(
+                                    repo_id=existing.id,
+                                    project_id=self._project_id or None,
+                                    event_type="stars_jumped",
+                                    payload_json={
+                                        "before": old_stars,
+                                        "after": new_stars,
+                                        "pct": round(pct_change * 100, 1),
+                                    },
+                                    source="scanner",
+                                    scan_run_id=scan_run.id,
+                                ))
+                        if events_to_write:
+                            await self._repo.bulk_create_repo_events(events_to_write)
+                    except Exception as ev_exc:
+                        errors.append(f"event:update {fn}: {ev_exc!s}")
             except Exception as exc:
                 errors.append(f"persist {repo_data.get('repo_full_name', '?')}: {exc!s}")
 
@@ -486,19 +547,24 @@ async def default_gh_search(
     keyword: str,
     min_stars: int,
     topics: list[str] | None = None,
+    limit: int = 500,
 ) -> list[dict[str, Any]]:
     """Async wrapper around gh CLI search returning normalised repo dicts.
 
     Runs the blocking subprocess call in a default executor so callers stay async.
     Errors are converted into empty result + propagated logger.warning so the
     caller's error_collector still records the issue via try/except.
+
+    Args:
+        limit: Max results per query (default 500, gh max 1000).
+               Higher limit = more candidates but slower per-repo topic fetch.
     """
     from aiteam.mcp.tools.ecosystem import _parse_gh_repo, _run_gh_search
 
     loop = asyncio.get_running_loop()
     items = await loop.run_in_executor(
         None,
-        lambda: _run_gh_search(keyword, min_stars=min_stars, topics=topics),
+        lambda: _run_gh_search(keyword, min_stars=min_stars, topics=topics, limit=limit),
     )
 
     result: list[dict[str, Any]] = []

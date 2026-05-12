@@ -159,6 +159,14 @@ COLUMNS_TO_ENSURE: list[tuple[str, str, str]] = [
     ("ecosystem_index_diffs", "removed_from_query_count", "INTEGER DEFAULT 0"),
     # v1.6.0-P1.C-1: which search queries first/subsequently discovered this repo
     ("ecosystem_repo_profiles", "discovered_via_queries", "TEXT DEFAULT NULL"),
+    # v1.6.0 event sourcing: ecosystem_repo_events columns (table created by create_all,
+    # these entries guard against future column additions on existing DBs)
+    ("ecosystem_repo_events", "payload_json", "TEXT"),
+    ("ecosystem_repo_events", "source", "VARCHAR(20) DEFAULT 'scanner'"),
+    ("ecosystem_repo_events", "scan_run_id", "VARCHAR(36)"),
+    ("ecosystem_repo_events", "from_status", "VARCHAR(20)"),
+    ("ecosystem_repo_events", "to_status", "VARCHAR(20)"),
+    ("ecosystem_repo_events", "reason", "TEXT"),
 ]
 
 
@@ -277,6 +285,10 @@ def _sqlite_migrate(db_path: str) -> None:
         # v1.6.0-P0: backfill canonical_id + source_kind for existing github repos
         if _table_exists(con, "ecosystem_repo_profiles"):
             _backfill_v160_repo_profile_fields(con)
+
+        # v1.6.0 event sourcing: backfill existing status_changes into events table
+        if _table_exists(con, "ecosystem_status_changes") and _table_exists(con, "ecosystem_repo_events"):
+            _backfill_status_changes_to_events(con)
     finally:
         con.close()
 
@@ -337,6 +349,43 @@ def _backfill_v160_repo_profile_fields(con: object) -> None:
         con.commit()
     except sqlite3.OperationalError:
         pass  # columns may not exist yet in empty DB — create_all handles that
+
+
+def _backfill_status_changes_to_events(con: object) -> None:
+    """v1.6.0 event sourcing: migrate existing ecosystem_status_changes rows into ecosystem_repo_events.
+
+    Idempotent: only inserts rows where the source id does not already appear in events.
+    Existing status_changes are preserved (not deleted) for backward compat.
+    """
+    import json
+    import sqlite3
+
+    if not isinstance(con, sqlite3.Connection):
+        return  # pragma: no cover
+
+    try:
+        rows = con.execute(
+            "SELECT id, repo_id, project_id, from_status, to_status, scan_run_id, reason, triggered_at "
+            "FROM ecosystem_status_changes"
+        ).fetchall()
+        for row in rows:
+            sc_id, repo_id, project_id, from_status, to_status, scan_run_id, reason, triggered_at = row
+            # Check if already backfilled (reason field stores source id reference)
+            existing = con.execute(
+                "SELECT 1 FROM ecosystem_repo_events WHERE id = ?", (sc_id,)
+            ).fetchone()
+            if existing:
+                continue
+            payload = json.dumps({"from": from_status, "to": to_status})
+            con.execute(
+                "INSERT INTO ecosystem_repo_events "
+                "(id, repo_id, project_id, event_type, payload_json, source, scan_run_id, from_status, to_status, reason, triggered_at) "
+                "VALUES (?, ?, ?, 'status_changed', ?, 'scanner', ?, ?, ?, ?, ?)",
+                (sc_id, repo_id, project_id, payload, scan_run_id, from_status, to_status, reason or "", triggered_at),
+            )
+        con.commit()
+    except sqlite3.OperationalError:
+        pass  # graceful degradation — missing columns handled by create_all
 
 
 def _ensure_ecosystem_profile_project_unique(con: object) -> None:

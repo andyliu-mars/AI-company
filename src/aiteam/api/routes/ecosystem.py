@@ -25,6 +25,7 @@ from aiteam.types import (
     DataSourceKind,
     EcosystemDeepReview,
     EcosystemIndexDiff,
+    EcosystemRepoEvent,
     EcosystemRepoProfile,
     EcosystemScanRun,
     EcosystemScanStrategy,
@@ -38,10 +39,10 @@ from aiteam.types import (
 # Removed: active_definition / inactive_signals / archive_signals (no inactivity eviction).
 _DEFAULT_SCAN_PROFILE: dict = {
     "popularity_floor": {
-        "github": 5000,
-        "huggingface": 1000,
-        "npm": 5000,
-        "pypi": 5000,
+        "github": 1000,
+        "huggingface": 200,
+        "npm": 1000,
+        "pypi": 1000,
     },
     "alert_thresholds": {
         "max_new_per_scan": 50,
@@ -2666,7 +2667,27 @@ async def index_update(
         await repo.create_index_diff(diff)
         if status_changes:
             await repo.bulk_create_status_changes(status_changes)
+            # v1.6.0: also write status_changed events to ecosystem_repo_events
+            status_events = [
+                EcosystemRepoEvent(
+                    repo_id=sc.repo_id,
+                    project_id=sc.project_id,
+                    event_type="status_changed",
+                    payload_json={"from": sc.from_status, "to": sc.to_status},
+                    source="api",
+                    from_status=sc.from_status,
+                    to_status=sc.to_status,
+                    reason=sc.reason or None,
+                )
+                for sc in status_changes
+            ]
+            if status_events:
+                await repo.bulk_create_repo_events(status_events)
 
+    diff_summary = (
+        f"{diff.new_count} new, {len(updated_repos)} updated, "
+        f"{diff.github_archived_changed_count} archive changes"
+    )
     return {
         "success": True,
         "dry_run": body.dry_run,
@@ -2680,6 +2701,7 @@ async def index_update(
             "github_archived_changed_count": diff.github_archived_changed_count,
             "removed_from_query_count": diff.removed_from_query_count,
             "markdown_summary": diff.markdown_summary,
+            "summary": diff_summary,
         },
         "message": (
             "Dry-run complete — no changes written." if body.dry_run
@@ -2793,6 +2815,89 @@ async def get_index_diff_history(
             for d in diffs
         ],
         "total": len(diffs),
+    }
+
+
+@router.get("/repos/{repo_id}/events")
+async def get_repo_events(
+    repo_id: str,
+    limit: int = Query(default=50, ge=1, le=200),
+    repo: StorageRepository = Depends(get_scoped_repository),
+) -> dict[str, Any]:
+    """Return event history for a single repo, newest first (v1.6.0 event sourcing).
+
+    Returns:
+        {success: True, repo_id, events: [{id, event_type, payload_json, source, triggered_at, ...}], total}
+    """
+    events = await repo.list_repo_events(repo_id, limit=limit)
+    return {
+        "success": True,
+        "repo_id": repo_id,
+        "events": [
+            {
+                "id": ev.id,
+                "event_type": ev.event_type,
+                "payload_json": ev.payload_json,
+                "source": ev.source,
+                "scan_run_id": ev.scan_run_id,
+                "from_status": ev.from_status,
+                "to_status": ev.to_status,
+                "reason": ev.reason,
+                "triggered_at": ev.triggered_at.isoformat(),
+            }
+            for ev in events
+        ],
+        "total": len(events),
+    }
+
+
+@router.get("/diff")
+async def get_diff_period(
+    from_date: str = Query(..., alias="from", description="ISO date YYYY-MM-DD"),
+    to_date: str = Query(..., alias="to", description="ISO date YYYY-MM-DD"),
+    repo: StorageRepository = Depends(get_scoped_repository),
+) -> dict[str, Any]:
+    """Return a time-period diff computed dynamically from the events table (v1.6.0 event sourcing).
+
+    Groups events by event_type to produce new / topics_changed / stars_jumped / status_changed counts.
+
+    Returns:
+        {success, from, to, summary: {new, topics_changed, stars_jumped, status_changed, ...},
+         events_count, events_by_type: {event_type: count}}
+    """
+    from datetime import datetime, timezone, timedelta
+
+    project_id = repo._project_scope
+    if not project_id:
+        raise HTTPException(status_code=400, detail="X-Project-Id header required")
+
+    try:
+        from_dt = datetime.fromisoformat(from_date).replace(tzinfo=timezone.utc)
+        to_dt = datetime.fromisoformat(to_date).replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format, use YYYY-MM-DD")
+
+    events = await repo.query_events_in_period(project_id, from_dt, to_dt)
+
+    by_type: dict[str, int] = {}
+    for ev in events:
+        by_type[ev.event_type] = by_type.get(ev.event_type, 0) + 1
+
+    return {
+        "success": True,
+        "from": from_date,
+        "to": to_date,
+        "summary": {
+            "new": by_type.get("discovered", 0),
+            "topics_changed": by_type.get("topics_changed", 0),
+            "stars_jumped": by_type.get("stars_jumped", 0),
+            "status_changed": by_type.get("status_changed", 0),
+            "archived": by_type.get("archived", 0),
+            "manual_pinned": by_type.get("manual_pinned", 0),
+            "manual_unpinned": by_type.get("manual_unpinned", 0),
+        },
+        "events_count": len(events),
+        "events_by_type": by_type,
     }
 
 

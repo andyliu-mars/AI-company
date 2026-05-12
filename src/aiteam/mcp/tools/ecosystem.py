@@ -48,8 +48,30 @@ _EXCLUDE_REPOS = {
     "GenericAgent",
 }
 
-# JSON fields available from gh search repos
+# JSON fields available from gh search repos (repositoryTopics is NOT supported by gh search repos)
 _GH_JSON_FIELDS = "fullName,name,owner,description,stargazersCount,language,homepage,pushedAt"
+
+
+def _fetch_repo_topics(full_name: str, timeout: int = 10) -> list[str]:
+    """Fetch real GitHub topics for a repo via gh api repos/{owner}/{repo}.
+
+    Returns empty list on any failure (network error, rate limit, not found).
+    The caller should fall back to hint_topics when this returns [].
+    """
+    try:
+        result = subprocess.run(
+            ["gh", "api", f"repos/{full_name}", "--jq", ".topics[]"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return []
+        return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    except Exception:
+        return []
 
 
 def _classify_repo(hint_topics: list[str], description: str | None, name: str) -> str | None:
@@ -161,8 +183,9 @@ def _parse_gh_repo(
         except ValueError:
             pass
 
-    # Use hint_topics (from the search query) as proxy for topics field
-    effective_topics = hint_topics or []
+    # Prefer real GitHub topics from the API; fall back to hint_topics from search query
+    real_topics = _fetch_repo_topics(full_name)
+    effective_topics = real_topics if real_topics else (hint_topics or [])
     needs_deep_review = stars < 15000
     category = _classify_repo(effective_topics, description, name)
     relevance_score = _compute_relevance_score(effective_topics, description, stars)
@@ -1913,6 +1936,55 @@ def register(mcp: Any) -> None:
                     "error": "P0.4 will implement",
                     "detail": result.get("detail", ""),
                 }
+        return result
+
+    @mcp.tool()
+    def ecosystem_repo_events(repo_id: str, limit: int = 50) -> dict[str, Any]:
+        """Return event history for a single ecosystem repo (v1.6.0 event sourcing).
+
+        Each event captures a discrete operation: discovered, rescanned, topics_changed,
+        stars_jumped, status_changed, archived, manual_pinned, manual_unpinned, removed_from_query.
+
+        Args:
+            repo_id: EcosystemRepoProfile.id to query events for.
+            limit: Max events to return (default 50, max 200).
+
+        Returns:
+            {success, repo_id, events: [{id, event_type, payload_json, source, triggered_at, ...}], total}
+        """
+        result = _api_call(
+            "GET",
+            f"/api/ecosystem/repos/{repo_id}/events?limit={limit}",
+            extra_headers=_project_headers(),
+        )
+        if not result:
+            return {"success": False, "error": "api_unavailable"}
+        return result
+
+    @mcp.tool()
+    def ecosystem_diff_period(from_date: str, to_date: str) -> dict[str, Any]:
+        """Return a time-period diff computed dynamically from the event log (v1.6.0 event sourcing).
+
+        Groups events by type to produce summary counts: new repos discovered, topics changed,
+        stars jumped, status changed. This replaces the legacy index_diff snapshot approach.
+
+        Args:
+            from_date: Start date in YYYY-MM-DD format (inclusive).
+            to_date: End date in YYYY-MM-DD format (inclusive).
+
+        Returns:
+            {success, from, to, summary: {new, topics_changed, stars_jumped, status_changed, ...},
+             events_count, events_by_type: {event_type: count}}
+        """
+        import urllib.parse as _up
+        qs = _up.urlencode({"from": from_date, "to": to_date})
+        result = _api_call(
+            "GET",
+            f"/api/ecosystem/diff?{qs}",
+            extra_headers=_project_headers(),
+        )
+        if not result:
+            return {"success": False, "error": "api_unavailable"}
         return result
 
     @mcp.tool()

@@ -25,6 +25,7 @@ from aiteam.storage.models import (
     EcosystemIndexDiffModel,
     EcosystemProjectSettingsModel,
     EcosystemRelationModel,
+    EcosystemRepoEventModel,
     EcosystemRepoProfileModel,
     EcosystemRepoStatusSnapshotModel,
     EcosystemRepoTagModel,
@@ -60,6 +61,7 @@ from aiteam.types import (
     EcosystemIndexDiff,
     EcosystemProjectSettings,
     EcosystemRelation,
+    EcosystemRepoEvent,
     EcosystemRepoProfile,
     EcosystemRepoStatusSnapshot,
     EcosystemRepoTag,
@@ -4216,3 +4218,60 @@ class StorageRepository:
                     .values(discovered_via_queries=_json.dumps(existing))
                 )
             return True
+
+    # ================================================================
+    # v1.6.0 event sourcing: EcosystemRepoEvent CRUD
+    # ================================================================
+
+    async def create_repo_event(self, event: EcosystemRepoEvent) -> EcosystemRepoEvent:
+        """Persist a single repo event record."""
+        async with get_session(self._db_url) as session:
+            orm = EcosystemRepoEventModel.from_pydantic(event)
+            session.add(orm)
+        return event
+
+    async def bulk_create_repo_events(self, events: list[EcosystemRepoEvent]) -> int:
+        """Bulk insert repo event records; returns count inserted."""
+        if not events:
+            return 0
+        async with get_session(self._db_url) as session:
+            for ev in events:
+                session.add(EcosystemRepoEventModel.from_pydantic(ev))
+        return len(events)
+
+    async def list_repo_events(
+        self,
+        repo_id: str,
+        limit: int = 50,
+        project_id: str | None = None,
+    ) -> list[EcosystemRepoEvent]:
+        """Return events for a repo, newest first."""
+        async with get_session(self._db_url) as session:
+            stmt = (
+                select(EcosystemRepoEventModel)
+                .where(EcosystemRepoEventModel.repo_id == repo_id)
+                .order_by(EcosystemRepoEventModel.triggered_at.desc())
+                .limit(limit)
+            )
+            result = await session.execute(stmt)
+            rows = result.scalars().all()
+            return [r.to_pydantic() for r in rows]
+
+    async def query_events_in_period(
+        self,
+        project_id: str,
+        from_dt: datetime,
+        to_dt: datetime,
+    ) -> list[EcosystemRepoEvent]:
+        """Return all events within a time window for a project."""
+        async with get_session(self._db_url) as session:
+            stmt = (
+                select(EcosystemRepoEventModel)
+                .where(EcosystemRepoEventModel.project_id == project_id)
+                .where(EcosystemRepoEventModel.triggered_at >= from_dt)
+                .where(EcosystemRepoEventModel.triggered_at <= to_dt)
+                .order_by(EcosystemRepoEventModel.triggered_at.asc())
+            )
+            result = await session.execute(stmt)
+            rows = result.scalars().all()
+            return [r.to_pydantic() for r in rows]

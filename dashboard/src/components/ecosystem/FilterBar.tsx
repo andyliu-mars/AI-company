@@ -46,12 +46,16 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
     onChange({ limit: filters.limit ?? 200 });
   };
 
+  // v1.6.0：默认全集（含已删除，因数量极少），勾选则切换为"仅已删除"视图
+  const onlyDeleted = filters.isDeleted === true;
+
   const hasActiveFilter = Boolean(
     filters.keyword ||
       filters.topic ||
       filters.category ||
       (filters.minStars && filters.minStars > 0) ||
-      filters.stageStatus,
+      filters.stageStatus ||
+      onlyDeleted,
   );
 
   // 类别 trigger 显示文本
@@ -187,6 +191,24 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
             </SelectItem>
           </SelectContent>
         </Select>
+
+        {/* v1.6.0：替代被删除的"已删除" tab — 切换"仅看已删除"视图 */}
+        <label
+          className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none h-8 px-2 rounded-md hover:bg-muted/40"
+          title="勾选后仅显示已被检测为删除/转为私有的仓（默认视图包含全部仓）"
+        >
+          <input
+            type="checkbox"
+            checked={onlyDeleted}
+            onChange={(e) =>
+              // 勾选 → isDeleted=true（仅已删除）；取消 → undefined（全集，默认）
+              update({ isDeleted: e.target.checked ? true : undefined })
+            }
+            className="h-3.5 w-3.5 rounded border-border accent-primary"
+            aria-label="仅看已删除仓"
+          />
+          仅看已删除
+        </label>
 
         {/* TODO(Stage E v2): 增加 has_deep_review / is_archived / tags 多选筛选 */}
 

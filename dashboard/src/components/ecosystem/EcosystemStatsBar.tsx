@@ -82,14 +82,22 @@ export function EcosystemStatsBar({
       facetCounts?.stage !== undefined
         ? stageFacet.queued ?? 0
         : allProfiles.filter((p) => (p.stage_status ?? 'queued') === 'queued').length;
-    // 失活：archived 或 last_commit_at 超过 365 天
+    // v1.6.0 "已归档"：优先用 last_active_status（GitHub archived / 人工标记无价值），
+    // 缺字段则 fallback 到旧规则（is_archived || last_commit > 365 天）。
     const now = Date.now();
-    const archivedCount = allProfiles.filter((p) => {
-      if (p.is_archived) return true;
-      if (!p.last_commit_at) return false;
-      const days = (now - new Date(p.last_commit_at).getTime()) / (1000 * 60 * 60 * 24);
-      return days > 365;
-    }).length;
+    const hasStatusField = allProfiles.some((p) => p.last_active_status != null);
+    const archivedCount = hasStatusField
+      ? allProfiles.filter(
+          (p) =>
+            p.last_active_status === 'archived' ||
+            p.last_active_status === 'manual_archived',
+        ).length
+      : allProfiles.filter((p) => {
+          if (p.is_archived) return true;
+          if (!p.last_commit_at) return false;
+          const days = (now - new Date(p.last_commit_at).getTime()) / (1000 * 60 * 60 * 24);
+          return days > 365;
+        }).length;
     // 已深扫总数 = stage 进入 architecture_done+ 的全量
     const deepDoneCount =
       (stageFacet.architecture_done ?? 0) +
@@ -100,13 +108,13 @@ export function EcosystemStatsBar({
     return { totalCount, needsDeepCount, archivedCount, deepDoneCount, isFacetAvailable };
   }, [allProfiles, facetCounts, total]);
 
-  // Top 3 类别（按命中数量降序）
+  // Top 8 类别（按命中数量降序）— v1.6.0：扩到 8 占满整行；外层 flex-wrap 已开
   const topCategories = useMemo(() => {
     if (!facetCounts?.category) return [];
     return Object.entries(facetCounts.category)
       .filter(([, n]) => n > 0)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 3);
+      .slice(0, 8);
   }, [facetCounts]);
 
   return (
@@ -147,7 +155,7 @@ export function EcosystemStatsBar({
           Icon={Boxes}
           label="当前视图"
           value={stats.totalCount}
-          hint="切「活跃集」或「全量」tab 改变范围"
+          hint="所有库永久参与搜索；勾选「显示已删除」可查看删除/转私有仓"
           tone="default"
         />
         <StatCard
@@ -166,9 +174,9 @@ export function EcosystemStatsBar({
         />
         <StatCard
           Icon={Archive}
-          label="失活仓"
+          label="已归档"
           value={stats.archivedCount}
-          hint="归档 或 365 天无提交"
+          hint="GitHub archived 或人工标记无价值"
           tone="warning"
         />
       </div>

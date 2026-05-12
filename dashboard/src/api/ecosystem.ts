@@ -37,6 +37,8 @@ export interface EcosystemRepoProfile {
   stage_status?: string | null;
   // v1.5.1：研究次数（关联的 deep_review 行数，0 = 未深扫）
   research_count?: number;
+  // v1.6.0：last_active_status — 'active' / 'archived' / 'manual_archived' / 'pinned' / null
+  last_active_status?: string | null;
 }
 
 // v1.5.0 漏斗 stage 状态
@@ -255,17 +257,44 @@ export interface EcosystemRelation {
   created_at: string;
 }
 
-/** 扫描运行记录 */
+/** 扫描运行记录（与后端 /api/ecosystem/scan-runs 返回对齐） */
 export interface EcosystemScanRun {
   id: string;
   agent_id: string | null;
+  /** 后端原始字段（incremental / full / topic / trending 等） */
+  strategy: string;
+  /** 前端派生：等同 strategy（向后兼容 UI 字段名） */
   scan_type: string;
   started_at: string;
   completed_at: string | null;
-  status: string;
+  /** 前端派生：completed_at != null → 'completed'，否则 'running'；errors 非空 → 'failed' */
+  status: 'completed' | 'running' | 'failed' | string;
+  duration_seconds?: number | null;
   repos_added: number;
   repos_updated: number;
+  repos_skipped?: number;
+  errors?: string[];
+  triggered_by?: string;
   notes: string | null;
+}
+
+/** 后端 /api/ecosystem/scan-runs 原始响应（字段在 hook 中映射） */
+interface ScanRunsApiResponse {
+  runs: Array<{
+    id: string;
+    agent_id: string | null;
+    strategy: string;
+    started_at: string;
+    completed_at: string | null;
+    duration_seconds?: number | null;
+    repos_added: number;
+    repos_updated: number;
+    repos_skipped?: number;
+    errors?: string[];
+    triggered_by?: string;
+    notes: string | null;
+  }>;
+  total: number;
 }
 
 /** v2 全息响应 — 与后端 EcosystemRepoFullResponse 对齐 */
@@ -299,12 +328,28 @@ export interface EcosystemDeepReviewListResponse {
 export function useEcosystemRecentScanRuns(limit: number = 5) {
   return useQuery({
     queryKey: ['ecosystem', 'scan-runs', limit],
-    queryFn: () => {
+    queryFn: async (): Promise<{ data: EcosystemScanRun[]; total: number }> => {
       const params = new URLSearchParams();
       params.set('limit', String(limit));
-      return apiFetch<{ data: EcosystemScanRun[]; total: number }>(
+      const body = await apiFetch<ScanRunsApiResponse>(
         `/api/ecosystem/scan-runs?${params.toString()}`,
       );
+      // 后端返回 {runs, total}，前端 hook 历来期望 {data, total}。
+      // 同时派生 scan_type（= strategy）与 status（completed_at + errors 推断）。
+      const data: EcosystemScanRun[] = body.runs.map((r) => {
+        const hasErrors = Array.isArray(r.errors) && r.errors.length > 0;
+        const status: EcosystemScanRun['status'] = r.completed_at
+          ? hasErrors
+            ? 'failed'
+            : 'completed'
+          : 'running';
+        return {
+          ...r,
+          scan_type: r.strategy,
+          status,
+        };
+      });
+      return { data, total: body.total };
     },
     staleTime: 30_000,
   });

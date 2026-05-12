@@ -362,8 +362,15 @@ async def search_profiles(
     )
 
     # v1.5.0-E 客户端二次过滤：is_active / is_deleted
+    # v1.6.0 P1.A: is_active 语义化到 last_active_status（旧 is_active 字段已 deprecated）
+    # 兼容：last_active_status 缺失时 fallback 到旧 is_active 字段
     if is_active is not None:
-        profiles = [p for p in profiles if p.is_active == is_active]
+        def _is_active(p):
+            status = getattr(p, 'last_active_status', None)
+            if status is not None:
+                return status == 'active'
+            return bool(getattr(p, 'is_active', True))
+        profiles = [p for p in profiles if _is_active(p) == is_active]
     if is_deleted is not None:
         profiles = [p for p in profiles if p.is_deleted == is_deleted]
 

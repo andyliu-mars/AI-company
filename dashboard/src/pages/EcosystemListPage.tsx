@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, Boxes, ChevronLeft, ChevronRight, Search as SearchIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useEcosystemProfiles } from '@/api/ecosystem';
 import type { EcosystemFilters } from '@/api/ecosystem';
@@ -12,36 +11,37 @@ import { EcosystemStatsBar } from '@/components/ecosystem/EcosystemStatsBar';
 import { RecentScanRunsBar } from '@/components/ecosystem/RecentScanRunsBar';
 import { useProject } from '@/context/ProjectContext';
 
-type LifecycleTab = 'active' | 'all' | 'deleted';
-
 /**
- * Ecosystem 列表页 — v1.5.0-E：stage 徽章 + 活跃/全量/已删除 tab。
+ * Ecosystem 列表页 — v1.6.0：取消失活筛选，所有库永久参与搜索。
+ * 项目筛选交给右上角项目下拉，左上角 tab 全部移除。
+ * "显示已删除" 由 FilterBar 内 checkbox 控制（默认隐藏）。
+ *
  * 路径：/ecosystem
- * 数据源：GET /api/ecosystem/profiles?facet_counts=true&is_active=...&is_deleted=...
+ * 数据源：GET /api/ecosystem/profiles?facet_counts=true&is_deleted=...
  */
 const PAGE_SIZE = 100;
 
 export function EcosystemListPage() {
   const { projectId, projectName } = useProject();
-  const [tab, setTab] = useState<LifecycleTab>('active');
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<EcosystemFilters>({
     limit: PAGE_SIZE,
     facetCounts: true,
   });
 
-  // tab / 筛选条件变化时重置到第 1 页（防止 page=3 但只剩 50 条空白）
+  // 筛选条件变化时重置到第 1 页（防止 page=3 但只剩 50 条空白）
   useEffect(() => {
     setPage(1);
-  }, [tab, filters]);
+  }, [filters]);
 
-  // 根据 tab 注入活跃/已删除参数 + 分页 offset
+  // v1.6.0 设计哲学：所有库永久参与搜索，不再默认排除已删除/失活仓。
+  // FilterBar 勾选"显示已删除"时不变化（已含），未勾选时显式 isDeleted=false 仅看活跃仓。
+  // - filters.isDeleted=null  → showDeleted 勾选 → 不传参（全集 265）
+  // - filters.isDeleted=undefined（默认）→ 不传参（全集 265，符合 v1.6.0 哲学）
+  // - filters.isDeleted=false → 仅未删除
   const effectiveFilters = useMemo<EcosystemFilters>(() => {
-    const base: EcosystemFilters = { ...filters, offset: (page - 1) * PAGE_SIZE };
-    if (tab === 'active') return { ...base, isActive: true, isDeleted: false };
-    if (tab === 'deleted') return { ...base, isDeleted: true };
-    return base; // all: 不限定 active/deleted
-  }, [filters, tab, page]);
+    return { ...filters, offset: (page - 1) * PAGE_SIZE };
+  }, [filters, page]);
 
   const { data, isLoading, error } = useEcosystemProfiles(effectiveFilters);
   const profiles = data?.profiles ?? [];
@@ -90,25 +90,6 @@ export function EcosystemListPage() {
             查找候选
           </Button>
         </div>
-
-        {/* 活跃/全量/已删除 tab */}
-        <Tabs
-          value={tab}
-          onValueChange={(v: string) => setTab(v as LifecycleTab)}
-          className="mt-3"
-        >
-          <TabsList variant="line" className="gap-2">
-            <TabsTrigger value="active" aria-label="活跃集">
-              活跃集
-            </TabsTrigger>
-            <TabsTrigger value="all" aria-label="全量">
-              全量
-            </TabsTrigger>
-            <TabsTrigger value="deleted" aria-label="已删除">
-              已删除
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
       </div>
 
       {/* 最近批次扫描概览（v1.5.2: 从单仓详情页迁回生态档案级位置） */}
@@ -168,13 +149,9 @@ export function EcosystemListPage() {
             <p className="text-xs mt-1">
               {filters.keyword || filters.category || filters.minStars
                 ? '调整筛选条件或清除过滤试试'
-                : tab === 'deleted'
-                  ? '本项目尚未识别到已删除/被设私有的仓'
-                  : tab === 'active'
-                    ? '当前活跃集为空，可切换到「全量」查看所有归档仓'
-                    : projectId
-                      ? '当前项目下尚无生态仓档案，可切换到「全部项目」或运行扫描任务后填充'
-                      : '运行扫描任务后将填充档案'}
+                : projectId
+                  ? '当前项目下尚无生态仓档案，可切换到「全部项目」或运行扫描任务后填充'
+                  : '运行扫描任务后将填充档案'}
             </p>
           </div>
         )}

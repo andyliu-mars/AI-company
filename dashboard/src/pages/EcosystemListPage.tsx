@@ -46,19 +46,30 @@ export function EcosystemListPage() {
   const { data, isLoading, error } = useEcosystemProfiles(effectiveFilters);
   const profiles = data?.profiles ?? [];
 
-  // 客户端二次过滤：keyword 也匹配 owner/description
+  // 客户端二次过滤：keyword 匹配 owner/description；v1.6.0 topics 多选 OR 求交集
   const filtered = useMemo(() => {
-    if (!filters.keyword) return profiles;
-    const q = filters.keyword.toLowerCase();
-    return profiles.filter(
-      (p) =>
-        p.repo_full_name.toLowerCase().includes(q) ||
-        (p.owner ?? '').toLowerCase().includes(q) ||
-        p.name.toLowerCase().includes(q) ||
-        (p.description ?? p.description_excerpt ?? '').toLowerCase().includes(q) ||
-        (p.one_line_summary ?? '').toLowerCase().includes(q),
-    );
-  }, [profiles, filters.keyword]);
+    const q = filters.keyword?.toLowerCase() ?? '';
+    const selectedTopics = filters.topics ?? [];
+    if (!q && selectedTopics.length === 0) return profiles;
+    return profiles.filter((p) => {
+      if (q) {
+        const matchKw =
+          p.repo_full_name.toLowerCase().includes(q) ||
+          (p.owner ?? '').toLowerCase().includes(q) ||
+          p.name.toLowerCase().includes(q) ||
+          (p.description ?? p.description_excerpt ?? '').toLowerCase().includes(q) ||
+          (p.one_line_summary ?? '').toLowerCase().includes(q);
+        if (!matchKw) return false;
+      }
+      if (selectedTopics.length > 0) {
+        const repoTopics = p.topics ?? [];
+        // OR 语义：profile 的 topics 与 selected 有交集即通过
+        const hit = selectedTopics.some((t) => repoTopics.includes(t));
+        if (!hit) return false;
+      }
+      return true;
+    });
+  }, [profiles, filters.keyword, filters.topics]);
 
   return (
     <div className="flex h-full flex-col">

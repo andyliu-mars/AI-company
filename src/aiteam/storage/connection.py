@@ -289,6 +289,10 @@ def _sqlite_migrate(db_path: str) -> None:
         # v1.6.0 event sourcing: backfill existing status_changes into events table
         if _table_exists(con, "ecosystem_status_changes") and _table_exists(con, "ecosystem_repo_events"):
             _backfill_status_changes_to_events(con)
+
+        # v1.6.0 P2: backfill discovered events for old repos (first_seen_at set but no event)
+        if _table_exists(con, "ecosystem_repo_profiles") and _table_exists(con, "ecosystem_repo_events"):
+            _backfill_discovered_events(con)
     finally:
         con.close()
 
@@ -386,6 +390,53 @@ def _backfill_status_changes_to_events(con: object) -> None:
         con.commit()
     except sqlite3.OperationalError:
         pass  # graceful degradation — missing columns handled by create_all
+
+
+def _backfill_discovered_events(con: object) -> None:
+    """v1.6.0 P2: give old repos a 'discovered' event synthesised from first_seen_at.
+
+    Only inserts for repos where first_seen_at IS NOT NULL and no 'discovered'
+    event exists yet.  Idempotent — safe to call on every startup.
+    """
+    import json
+    import sqlite3
+    import uuid
+
+    if not isinstance(con, sqlite3.Connection):
+        return  # pragma: no cover
+
+    try:
+        rows = con.execute(
+            "SELECT id, project_id, scan_run_id, topics, stars, first_seen_at "
+            "FROM ecosystem_repo_profiles "
+            "WHERE first_seen_at IS NOT NULL "
+            "AND id NOT IN ("
+            "  SELECT repo_id FROM ecosystem_repo_events WHERE event_type = 'discovered'"
+            ")"
+        ).fetchall()
+
+        for repo_id, project_id, scan_run_id, topics_raw, stars, first_seen_at in rows:
+            try:
+                topics = json.loads(topics_raw) if topics_raw else []
+            except (json.JSONDecodeError, TypeError):
+                topics = []
+
+            payload = json.dumps({
+                "backfilled": True,
+                "first_topics": topics,
+                "first_stars": stars,
+                "source_query": "backfill_from_first_seen_at",
+            })
+            event_id = str(uuid.uuid4())
+            con.execute(
+                "INSERT INTO ecosystem_repo_events "
+                "(id, repo_id, project_id, event_type, payload_json, source, scan_run_id, triggered_at) "
+                "VALUES (?, ?, ?, 'discovered', ?, 'migration', ?, ?)",
+                (event_id, repo_id, project_id, payload, scan_run_id, first_seen_at),
+            )
+        con.commit()
+    except sqlite3.OperationalError:
+        pass  # graceful degradation — table may not exist in empty DB
 
 
 def _ensure_ecosystem_profile_project_unique(con: object) -> None:

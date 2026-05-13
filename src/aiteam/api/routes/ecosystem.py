@@ -2872,6 +2872,108 @@ async def get_repo_events(
     }
 
 
+def _event_to_summary(ev: "EcosystemRepoEvent") -> str:
+    """Translate event_type + payload into a single human-readable sentence."""
+    t = ev.event_type
+    p = ev.payload_json or {}
+    if t == "discovered":
+        return "首次入档浅扫"
+    if t == "rescanned":
+        return "浅扫无变化"
+    if t == "topics_changed":
+        before = p.get("before", [])
+        after = p.get("after", [])
+        return f"topics 变化: {len(before)} → {len(after)}"
+    if t == "stars_jumped":
+        before = p.get("before", p.get("old_stars", "?"))
+        after = p.get("after", p.get("new_stars", "?"))
+        pct = p.get("pct", "")
+        pct_str = f" (+{pct}%)" if pct else ""
+        return f"stars: {before} → {after}{pct_str}"
+    if t == "status_changed":
+        from_s = p.get("from", ev.from_status or "?")
+        to_s = p.get("to", ev.to_status or "?")
+        return f"{from_s} → {to_s}"
+    if t == "manual_pinned":
+        return "人工锁定"
+    if t == "manual_unpinned":
+        return "取消人工锁定"
+    if t == "archived":
+        return "已归档"
+    if t == "removed_from_query":
+        return "已从查询结果中移除"
+    return t
+
+
+@router.get("/repos/{repo_id}/scan_history")
+async def get_repo_scan_history(
+    repo_id: str,
+    limit: int = Query(default=50, le=200),
+    repo: StorageRepository = Depends(get_scoped_repository),
+) -> dict[str, Any]:
+    """合并 events + deep_reviews 按时间倒序，返回扫描研究历程 timeline。
+
+    Returns:
+        {
+          success, repo_id, total,
+          entries: [
+            {kind: 'event'|'deep_review', timestamp, type, summary, payload, expandable_md}
+          ]
+        }
+    """
+    events = await repo.list_repo_events(repo_id, limit=limit * 2)
+    deep_reviews = await repo.list_deep_reviews(repo_id=repo_id, limit=limit * 2)
+
+    entries: list[dict[str, Any]] = []
+
+    for ev in events:
+        entries.append({
+            "kind": "event",
+            "type": ev.event_type,
+            "timestamp": ev.triggered_at.isoformat(),
+            "source": ev.source,
+            "scan_run_id": ev.scan_run_id,
+            "payload": ev.payload_json,
+            "summary": _event_to_summary(ev),
+        })
+
+    for dr in deep_reviews:
+        ts = (dr.completed_at or dr.created_at)
+        stage_val = (
+            dr.stage_status.value if hasattr(dr.stage_status, "value") else (dr.stage_status or "unknown")
+        )
+        entries.append({
+            "kind": "deep_review",
+            "type": f"deep_review_{stage_val}",
+            "timestamp": ts.isoformat() if ts else dr.created_at.isoformat(),
+            "stage_status": stage_val,
+            "review_id": dr.id,
+            "summary": f"深扫 ({stage_val})",
+            "expandable_md": {
+                "summary": dr.summary_md or "",
+                "architecture": dr.architecture_md or "",
+                "risks": dr.risks_md or "",
+                "learnings": dr.learnings_md or "",
+                "integration": dr.integration_md or "",
+            },
+            "integration_recommendation": (
+                dr.integration_recommendation.value
+                if hasattr(dr.integration_recommendation, "value")
+                else dr.integration_recommendation
+            ),
+        })
+
+    entries.sort(key=lambda e: e["timestamp"], reverse=True)
+    trimmed = entries[:limit]
+
+    return {
+        "success": True,
+        "repo_id": repo_id,
+        "total": len(trimmed),
+        "entries": trimmed,
+    }
+
+
 @router.get("/diff")
 async def get_diff_period(
     from_date: str = Query(..., alias="from", description="ISO date YYYY-MM-DD"),

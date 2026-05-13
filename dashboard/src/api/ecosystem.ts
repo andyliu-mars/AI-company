@@ -134,7 +134,10 @@ export interface EcosystemProfilesResponse {
 export interface EcosystemFilters {
   keyword?: string;
   topic?: string;
+  /** @deprecated v1.6.0: relevance_category 启发式分类已废弃，UI 改用 topics 多选筛选 */
   category?: string;
+  /** v1.6.0: GitHub topics 多选筛选（客户端 filter；与 profile.topics 求交集） */
+  topics?: string[];
   minStars?: number;
   maxStars?: number;
   needsDeepReview?: boolean | null;
@@ -471,7 +474,8 @@ export const RELEVANCE_CATEGORIES = [
 export type RelevanceCategory = (typeof RELEVANCE_CATEGORIES)[number];
 
 /**
- * 类别中文显示名（保持与后端字段值一致）。
+ * @deprecated v1.6.0 SST: relevance_category 启发式分类已废弃，UI 改用真实 GitHub topics。
+ * 此映射保留仅作老数据回显兼容。新代码不应使用。
  */
 export const CATEGORY_LABELS: Record<string, string> = {
   'agent-framework': 'Agent 框架',
@@ -632,6 +636,53 @@ export function useRepoEvents(repoId: string | null, limit = 50) {
     queryKey: ['ecosystem', 'repo-events', repoId, limit],
     queryFn: () =>
       apiFetch<RepoEventsResponse>(`/api/ecosystem/repos/${repoId}/events?limit=${limit}`),
+    enabled: !!repoId,
+    staleTime: 30_000,
+  });
+}
+
+// ============================================================
+// v1.6.0: 扫描研究历程 — events + deep_reviews 合并 timeline
+// ============================================================
+
+/** scan_history entry — 合并 event 与 deep_review，按时间倒序 */
+export interface ScanHistoryEntry {
+  kind: 'event' | 'deep_review';
+  /** 事件类型 / 'deep_review_<stage_status>' */
+  type: string;
+  timestamp: string;
+  /** 人类可读一句话 */
+  summary: string;
+  source?: string;
+  scan_run_id?: string | null;
+  /** event 详情 payload */
+  payload?: Record<string, unknown>;
+  /** deep_review 5 段式 markdown */
+  expandable_md?: {
+    summary?: string;
+    architecture?: string;
+    risks?: string;
+    learnings?: string;
+    integration?: string;
+  };
+  integration_recommendation?: string | null;
+  stage_status?: string;
+  review_id?: string;
+}
+
+export interface ScanHistoryResponse {
+  success: boolean;
+  repo_id: string;
+  total: number;
+  entries: ScanHistoryEntry[];
+}
+
+/** GET /api/ecosystem/repos/{repoId}/scan_history */
+export function useScanHistory(repoId: string | null, limit = 50) {
+  return useQuery({
+    queryKey: ['ecosystem', 'scan-history', repoId, limit],
+    queryFn: () =>
+      apiFetch<ScanHistoryResponse>(`/api/ecosystem/repos/${repoId}/scan_history?limit=${limit}`),
     enabled: !!repoId,
     staleTime: 30_000,
   });

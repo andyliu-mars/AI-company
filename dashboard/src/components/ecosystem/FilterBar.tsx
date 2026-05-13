@@ -1,4 +1,5 @@
-import { Search, Star, Filter, X } from 'lucide-react';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { Search, Star, Tag, X, ChevronDown, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,7 +8,6 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select';
-import { CATEGORY_LABELS, RELEVANCE_CATEGORIES } from '@/api/ecosystem';
 import type { EcosystemFilters, EcosystemFacetCounts } from '@/api/ecosystem';
 
 interface FilterBarProps {
@@ -33,11 +33,12 @@ const STAR_OPTIONS: { value: number; label: string }[] = [
 const ALL = '__all__';
 
 /**
- * 列表页筛选栏 — 关键词搜索 + 类别 + 星标阈值 + 深扫状态。
+ * 列表页筛选栏 — 关键词搜索 + Topics 多选 + 星标阈值 + 深扫状态。
+ * v1.6.0：删除"类别"单选（启发式分类废弃），改为 GitHub topics 多选筛选（客户端 filter）。
  * 移动端单列堆叠，桌面端横向铺开。
  */
 export function FilterBar({ filters, onChange, totalCount, facetCounts }: FilterBarProps) {
-  const categoryFacets = facetCounts?.category ?? {};
+  const topicFacets = facetCounts?.topics ?? {};
   const update = (patch: Partial<EcosystemFilters>) => {
     onChange({ ...filters, ...patch });
   };
@@ -48,20 +49,23 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
 
   // v1.6.0：默认全集（含已删除，因数量极少），勾选则切换为"仅已删除"视图
   const onlyDeleted = filters.isDeleted === true;
+  const selectedTopics = filters.topics ?? [];
 
   const hasActiveFilter = Boolean(
     filters.keyword ||
       filters.topic ||
-      filters.category ||
+      selectedTopics.length > 0 ||
       (filters.minStars && filters.minStars > 0) ||
       filters.stageStatus ||
       onlyDeleted,
   );
 
-  // 类别 trigger 显示文本
-  const categoryLabel = filters.category
-    ? (CATEGORY_LABELS[filters.category] ?? filters.category)
-    : '全部类别';
+  // 按数量降序排序 topics，取 top 50（避免 2425 个全部塞进 dropdown）
+  const sortedTopics = useMemo(() => {
+    return Object.entries(topicFacets)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 50);
+  }, [topicFacets]);
 
   // 星标 trigger 显示文本
   const minStarsValue = filters.minStars ?? 0;
@@ -103,37 +107,12 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
 
       {/* 第二行：维度筛选 */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* 类别筛选 */}
-        <Select
-          value={filters.category || ALL}
-          onValueChange={(v) => update({ category: !v || v === ALL ? '' : v })}
-        >
-          <SelectTrigger className="h-8 min-w-[150px] text-sm" aria-label="筛选类别">
-            <Filter className="mr-1.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span className="truncate">{categoryLabel}</span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>
-              全部类别
-              {facetCounts && (
-                <span className="ml-1 text-xs text-muted-foreground">
-                  ({Object.values(categoryFacets).reduce((s, n) => s + n, 0)})
-                </span>
-              )}
-            </SelectItem>
-            {RELEVANCE_CATEGORIES.map((cat) => {
-              const cnt = categoryFacets[cat] ?? 0;
-              return (
-                <SelectItem key={cat} value={cat}>
-                  {CATEGORY_LABELS[cat] ?? cat}
-                  {facetCounts && (
-                    <span className="ml-1 text-xs text-muted-foreground">({cnt})</span>
-                  )}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+        {/* v1.6.0: Topics 多选筛选（替换原 relevance_category 单选） */}
+        <TopicsMultiSelect
+          options={sortedTopics}
+          selected={selectedTopics}
+          onChange={(next) => update({ topics: next.length > 0 ? next : undefined })}
+        />
 
         {/* 星标阈值 */}
         <Select
@@ -225,6 +204,134 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
           </Button>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Topics 多选下拉 — 显示带数量的 topic 列表，支持搜索过滤。
+ * v1.6.0: 替代原 relevance_category 单选；用 facet_counts.topics 作为选项数据源。
+ */
+function TopicsMultiSelect({
+  options,
+  selected,
+  onChange,
+}: {
+  options: [string, number][];
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener('mousedown', onClick);
+    return () => window.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return options;
+    const q = query.toLowerCase();
+    return options.filter(([name]) => name.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const toggle = (topic: string) => {
+    const next = selected.includes(topic)
+      ? selected.filter((t) => t !== topic)
+      : [...selected, topic];
+    onChange(next);
+  };
+
+  const triggerLabel =
+    selected.length === 0
+      ? '全部 Topics'
+      : selected.length === 1
+        ? selected[0]
+        : `${selected.length} 个 Topics`;
+
+  return (
+    <div ref={rootRef} className="relative">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 min-w-[170px] justify-between text-sm font-normal"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="筛选 Topics（多选）"
+        aria-expanded={open}
+      >
+        <span className="flex items-center gap-1.5 truncate">
+          <Tag className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span className="truncate">{triggerLabel}</span>
+        </span>
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden="true" />
+      </Button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-md border bg-popover shadow-md">
+          <div className="p-2 border-b">
+            <Input
+              autoFocus
+              placeholder="搜索 topic..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-7 text-xs"
+            />
+            {selected.length > 0 && (
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-[10px] text-muted-foreground">
+                  已选 {selected.length} 个
+                </span>
+                <button
+                  type="button"
+                  className="text-[10px] text-primary hover:underline"
+                  onClick={() => onChange([])}
+                >
+                  清空
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="max-h-72 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-3">无匹配 topic</p>
+            ) : (
+              filtered.map(([topic, count]) => {
+                const isSelected = selected.includes(topic);
+                return (
+                  <button
+                    key={topic}
+                    type="button"
+                    onClick={() => toggle(topic)}
+                    className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs text-left hover:bg-accent ${
+                      isSelected ? 'bg-accent/50' : ''
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span
+                        className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded border ${
+                          isSelected
+                            ? 'bg-primary border-primary text-primary-foreground'
+                            : 'border-border'
+                        }`}
+                      >
+                        {isSelected && <Check className="h-2.5 w-2.5" aria-hidden="true" />}
+                      </span>
+                      <span className="truncate">{topic}</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{count}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

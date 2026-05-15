@@ -465,6 +465,85 @@ async def _auto_create_projects(repo: StorageRepository) -> None:
         logger.info("Auto-created Project and linked %d Teams", len(orphan_teams))
 
 
+async def _backfill_shallow_done_status(repo: StorageRepository) -> None:
+    """v1.6.1 backfill: stage='shallow_done' 行的 status 字段对齐 'completed'。
+
+    幂等：只修改 status='running' 的脏数据行，已是 'completed' 的行不动。
+    """
+    try:
+        count = await repo.backfill_shallow_done_status_completed()
+        if count > 0:
+            logger.info(
+                "v1.6.1 backfill: fixed %d shallow_done rows with status=running -> completed",
+                count,
+            )
+        else:
+            logger.debug("v1.6.1 backfill: no shallow_done/running rows to fix")
+    except Exception as exc:
+        logger.warning("_backfill_shallow_done_status failed (non-fatal): %s", exc)
+
+
+async def _ensure_ecosystem_weekly_cron(repo: StorageRepository) -> None:
+    """Bug 1 修复：启动时幂等确保 ecosystem 周期刷新 cron 任务已注册。
+
+    使用 ``EcosystemRefresher.build_weekly_refresh_cron_payload`` 生成 payload，
+    从各项目的 ``EcosystemProjectSettings.refresh_interval_days`` 读取周期（默认 7 天）。
+    每个有 ecosystem profile 的项目注册一个独立 cron，名称含项目 ID 前缀防重复。
+
+    幂等保证：若同名 cron 已存在则跳过，不重复创建。
+    """
+    try:
+        from aiteam.services.ecosystem_refresher import WEEKLY_REFRESH_CRON_NAME
+
+        projects = await repo.list_projects()
+        if not projects:
+            logger.debug("ecosystem cron: no projects, skipping")
+            return
+
+        existing_tasks = await repo.list_scheduled_tasks()
+        existing_names = {t.name for t in existing_tasks}
+
+        from datetime import timedelta
+
+        for project in projects:
+            # 读取项目级 refresh_interval_days（默认 7）
+            settings = await repo.get_ecosystem_project_settings(project.id)
+            interval_days = settings.refresh_interval_days if settings else 7
+            interval_seconds = interval_days * 86400
+
+            # 每个项目用独立 cron 名（带 project_id 前缀），多项目不互相覆盖
+            cron_name = f"{WEEKLY_REFRESH_CRON_NAME}_{project.id}"
+            if cron_name in existing_names:
+                logger.debug("ecosystem cron: %s already exists, skipping", cron_name)
+                continue
+
+            from datetime import datetime
+
+            next_run_at = datetime.now() + timedelta(seconds=interval_seconds)
+            await repo.create_scheduled_task(
+                name=cron_name,
+                interval_seconds=interval_seconds,
+                action_type="emit_event",
+                next_run_at=next_run_at,
+                description=(
+                    f"Ecosystem {interval_days}d periodic shallow refresh for {project.name}"
+                ),
+                action_config={
+                    "event_type": "ecosystem.refresh.periodic",
+                    "data": {"project_id": project.id},
+                },
+            )
+            logger.info(
+                "ecosystem cron: registered '%s' interval=%dd for project %s",
+                cron_name,
+                interval_days,
+                project.id[:8],
+            )
+    except Exception as exc:
+        # 不阻断启动，只记录警告
+        logger.warning("_ensure_ecosystem_weekly_cron failed (non-fatal): %s", exc)
+
+
 async def _startup_reconciliation(repo: StorageRepository) -> None:
     """Startup reconciliation — reset all BUSY agents to IDLE and clear session associations on OS restart.
 
@@ -566,6 +645,12 @@ async def init_dependencies() -> None:
 
     # Stage J: refresh project_dir → project_id resolution cache
     await refresh_project_dir_cache(_repository)
+
+    # Bug 1 修复：幂等注册 ecosystem 周期刷新 cron 任务
+    await _ensure_ecosystem_weekly_cron(_repository)
+
+    # Bug 2 二次修复：backfill stage='shallow_done' 行的 status 字段 running -> completed
+    await _backfill_shallow_done_status(_repository)
 
     # Start StateReaper background harvester
     _reaper = StateReaper(repo=_repository, event_bus=_event_bus)

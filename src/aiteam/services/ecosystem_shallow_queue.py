@@ -413,14 +413,16 @@ class EcosystemShallowQueueWorker:
             # No project context — nothing to do.
             return result
 
-        budget = self._max_per_tick or max(1, settings.shallow_concurrency)
+        # Bug 3 修复：去掉 budget 上限，tick 一次性把所有候选全部入队。
+        # 并发控制由 worker claim 阶段负责（claim_next_shallow_repo 检查 claimed_by IS NULL），
+        # 不在 dispatch 阶段做节流，否则 300+ 候选需要 20 次 tick × 30s 才能全部入队。
 
         # 1. Find candidates: active profiles missing shallow_summary,
         #    not currently in-flight, not flagged as deleted/private.
         candidates = await self._find_candidates(settings)
         result.queued = len(candidates)
 
-        for profile in candidates[:budget]:
+        for profile in candidates:
             try:
                 intent = await self._dispatch_one(profile)
                 if intent is None:
@@ -554,12 +556,20 @@ class EcosystemShallowQueueWorker:
         return False
 
     async def queue_status(self) -> dict[str, Any]:
-        """Return current queue metrics for the MCP status tool."""
+        """Return current queue metrics for the MCP status tool.
+
+        Bug 4 修复：原逻辑用 profile.shallow_summary 空判定计 pending，
+        与 DR 表真实 stage 对不上（API 显示 pending=381，SQL 实际 pending=7）。
+        修复后改用 DR 行 stage_status 计数，同时重命名字段消除混淆：
+          - pending     = stage_status='queued' AND claimed_by IS NULL
+          - in_progress = stage_status='queued' AND claimed_by IS NOT NULL
+          - done        = stage_status='shallow_done'（历史扫描已完成）
+          - failed      = stage_status='shallow_failed'
+        保留 active_total / deleted / private_now 来自 profile 扫描（这几个不依赖 DR 行）。
+        同时保留旧字段 pending_shallow / in_flight 作向后兼容别名，便于未升级的调用方过渡。
+        """
         settings = await self._resolve_settings()
         active_total = 0
-        pending = 0
-        in_flight = 0
-        failed_terminal = 0
         deleted = 0
         private_now = 0
 
@@ -567,6 +577,12 @@ class EcosystemShallowQueueWorker:
             return {
                 "project_id": self._project_id or None,
                 "active_total": 0,
+                # 新语义字段
+                "pending": 0,
+                "in_progress": 0,
+                "done": 0,
+                "failed": 0,
+                # 向后兼容别名
                 "pending_shallow": 0,
                 "in_flight": 0,
                 "shallow_failed": 0,
@@ -578,6 +594,7 @@ class EcosystemShallowQueueWorker:
                 },
             }
 
+        # 统计活跃集、删除、私有（来自 profile 扫描）
         profiles, _ = await self._repo.search_ecosystem_profiles_extended(
             min_stars=settings.min_stars,
             limit=10000,
@@ -593,34 +610,28 @@ class EcosystemShallowQueueWorker:
                 continue
             if p.is_active:
                 active_total += 1
-                if not p.shallow_summary:
-                    pending += 1
 
-        # in_flight = deep_reviews in QUEUED/RUNNING for stage_status=queued
-        for status in (
-            EcosystemDeepReviewStatus.QUEUED,
-            EcosystemDeepReviewStatus.RUNNING,
-        ):
-            rows = await self._repo.list_deep_reviews(
-                status=status.value,
-                limit=500,
-                project_id=self._project_id or None,
-            )
-            in_flight += len(rows)
-
-        failed_rows = await self._repo.list_deep_reviews_by_stage(
-            EcosystemStageStatus.SHALLOW_FAILED,
-            limit=500,
-            project_id=self._project_id or None,
+        # Bug 4 核心修复：改用 DR 行 stage_status 精确计数
+        dr_counts = await self._repo.count_shallow_dr_stages(
+            project_id=self._project_id or None
         )
-        failed_terminal = len(failed_rows)
+        dr_pending = dr_counts.get("pending", 0)       # queued + unclaimed
+        dr_in_progress = dr_counts.get("in_progress", 0)  # queued + claimed
+        dr_done = dr_counts.get("done", 0)             # shallow_done
+        dr_failed = dr_counts.get("failed", 0)         # shallow_failed
 
         return {
             "project_id": self._project_id or None,
             "active_total": active_total,
-            "pending_shallow": pending,
-            "in_flight": in_flight,
-            "shallow_failed": failed_terminal,
+            # 新语义字段（清晰、精准）
+            "pending": dr_pending,
+            "in_progress": dr_in_progress,
+            "done": dr_done,
+            "failed": dr_failed,
+            # 向后兼容别名（供未升级 MCP tool / Dashboard 过渡用）
+            "pending_shallow": dr_pending,
+            "in_flight": dr_in_progress,
+            "shallow_failed": dr_failed,
             "deleted": deleted,
             "private_now": private_now,
             "concurrency": settings.shallow_concurrency,
@@ -727,7 +738,16 @@ class EcosystemShallowQueueWorker:
         self,
         settings: EcosystemProjectSettings,
     ) -> list[EcosystemRepoProfile]:
-        """Return active profiles missing shallow_summary, top-N first."""
+        """Return active profiles that need shallow scanning, top-N first.
+
+        Bug 2 修复：原逻辑 ``if p.shallow_summary: continue`` 永远跳过有 summary
+        的老库，导致即使 GitHub 有新 push 也不会重扫。修复后：有 summary 且
+        pushed_at 没超过 last_shallow_refreshed_at 的才跳过；有新 push 的加入候选。
+        使用局部导入避免与 ecosystem_refresher 的循环导入（refresher 已顶层导入本模块）。
+        """
+        # 局部导入避免循环依赖（ecosystem_refresher 顶层已导入 ecosystem_shallow_queue）
+        from aiteam.services.ecosystem_refresher import _has_new_push
+
         profiles, _ = await self._repo.search_ecosystem_profiles_extended(
             min_stars=settings.min_stars,
             limit=settings.top_n,
@@ -741,7 +761,8 @@ class EcosystemShallowQueueWorker:
                 continue
             if p.is_deleted or p.is_private_now:
                 continue
-            if p.shallow_summary:
+            # 有 summary 且 GitHub 没有新 push → 跳过（节省 agent quota）
+            if p.shallow_summary and not _has_new_push(p, p.pushed_at):
                 continue
             if p.fetch_failure_count >= MAX_RETRY_BUDGET:
                 continue
@@ -752,17 +773,23 @@ class EcosystemShallowQueueWorker:
         self,
         profile: EcosystemRepoProfile,
     ) -> DispatchIntent | None:
-        """Create deep_review row + build dispatch intent for one profile."""
-        # Skip if there's already an in-flight Stage 0 review for this repo.
+        """Create deep_review row + build dispatch intent for one profile.
+
+        Bug 2 二次修复：用 stage_status 判断是否在飞，而非 status 字段。
+        678 个 stage='shallow_done' 的行 status='running'（历史脏数据），
+        若继续用 status 判定则全部被误跳过，导致 dispatch=0。
+        修复：只在 stage_status='queued' 时跳过（真正在等待 claim 或 in-flight 中）；
+        其他 stage（shallow_done / shallow_failed / architecture_done / debated 等）
+        均视为已完成历史行，允许新建 DR 行重扫。
+        """
         existing = await self._repo.list_deep_reviews(
             repo_id=profile.id,
             project_id=self._project_id or None,
         )
         for row in existing:
-            if row.status in (
-                EcosystemDeepReviewStatus.QUEUED,
-                EcosystemDeepReviewStatus.RUNNING,
-            ):
+            sval = row.stage_status.value if hasattr(row.stage_status, "value") else str(row.stage_status or "")
+            if sval == EcosystemStageStatus.QUEUED.value:
+                # 真正在队列中等待 claim 或 agent 处理中，跳过防重复派遣
                 return None
 
         review = EcosystemDeepReview(

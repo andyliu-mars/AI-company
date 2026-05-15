@@ -3594,6 +3594,110 @@ class StorageRepository:
             rows = result.scalars().all()
             return [r.to_pydantic() for r in rows]
 
+    async def count_shallow_dr_stages(
+        self,
+        project_id: str | None = None,
+    ) -> dict[str, int]:
+        """统计浅扫 DR 行的各 stage_status 精确计数。
+
+        Bug 4 修复辅助方法：直接查 ecosystem_deep_reviews 表，
+        避免用 profile.shallow_summary 空判定导致语义偏差。
+
+        Returns:
+            {
+              "pending":     queued 且 claimed_by IS NULL 的行数,
+              "in_progress": queued 且 claimed_by IS NOT NULL 的行数,
+              "done":        shallow_done 的行数,
+              "failed":      shallow_failed 的行数,
+            }
+        """
+        from sqlalchemy import case, func
+
+        effective_pid = self._effective_project_id(project_id)
+
+        async with get_session(self._db_url) as session:
+            stmt = (
+                select(
+                    func.sum(
+                        case(
+                            (
+                                (EcosystemDeepReviewModel.stage_status == "queued")
+                                & EcosystemDeepReviewModel.claimed_by.is_(None),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ).label("pending"),
+                    func.sum(
+                        case(
+                            (
+                                (EcosystemDeepReviewModel.stage_status == "queued")
+                                & EcosystemDeepReviewModel.claimed_by.is_not(None),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ).label("in_progress"),
+                    func.sum(
+                        case(
+                            (EcosystemDeepReviewModel.stage_status == "shallow_done", 1),
+                            else_=0,
+                        )
+                    ).label("done"),
+                    func.sum(
+                        case(
+                            (EcosystemDeepReviewModel.stage_status == "shallow_failed", 1),
+                            else_=0,
+                        )
+                    ).label("failed"),
+                )
+                .select_from(EcosystemDeepReviewModel)
+            )
+            stmt = self._apply_project_filter(stmt, EcosystemDeepReviewModel)
+            if effective_pid is not None:
+                stmt = stmt.where(
+                    EcosystemDeepReviewModel.project_id == effective_pid
+                )
+            result = await session.execute(stmt)
+            row = result.one_or_none()
+            if row is None:
+                return {"pending": 0, "in_progress": 0, "done": 0, "failed": 0}
+            return {
+                "pending": int(row.pending or 0),
+                "in_progress": int(row.in_progress or 0),
+                "done": int(row.done or 0),
+                "failed": int(row.failed or 0),
+            }
+
+    async def backfill_shallow_done_status_completed(
+        self,
+        project_id: str | None = None,
+    ) -> int:
+        """v1.6.1 backfill: 将 stage_status='shallow_done' 且 status='running' 的行 status 改为 'completed'。
+
+        根因：apply_shallow_summary 的 v1.5.2 注释误保留了 status='running'，
+        导致 678 个 shallow_done 行的 status 字段是脏数据，令 _dispatch_one 的
+        旧 status 判定误跳过所有老库重扫。此 backfill 幂等修正历史数据。
+
+        Returns:
+            实际更新的行数。
+        """
+        from sqlalchemy import update as sa_update
+
+        effective_pid = self._effective_project_id(project_id)
+        async with get_session(self._db_url) as session:
+            stmt = (
+                sa_update(EcosystemDeepReviewModel)
+                .where(EcosystemDeepReviewModel.stage_status == "shallow_done")
+                .where(EcosystemDeepReviewModel.status == "running")
+            )
+            if effective_pid is not None:
+                stmt = stmt.where(EcosystemDeepReviewModel.project_id == effective_pid)
+            stmt = stmt.values(status="completed")
+            result = await session.execute(stmt)
+            await session.flush()
+            return result.rowcount or 0
+
     # ================================================================
     # v1.5.0-A: Failed flag helpers (Profile 失败追踪)
     # ================================================================

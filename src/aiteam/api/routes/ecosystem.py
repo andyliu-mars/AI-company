@@ -1437,7 +1437,7 @@ async def apply_shallow_summary(
         flag updates, and self-learning bookkeeping).
     """
     from aiteam.services.ecosystem_shallow_queue import EcosystemShallowQueueWorker
-    from aiteam.types import EcosystemStageStatus
+    from aiteam.types import EcosystemDeepReviewStatus, EcosystemStageStatus
 
     worker = EcosystemShallowQueueWorker(repo=repo)
 
@@ -1478,12 +1478,13 @@ async def apply_shallow_summary(
             body.deep_review_id,
             EcosystemStageStatus.SHALLOW_DONE,
         )
-        # v1.5.2 fix: 浅扫完成 ≠ 整个评审完成。保留 status='running'，
-        # 让前端按 stage_status 区分浅/深/辩/集成；同时仍写 completed_at
-        # 以便 stage 0 耗时可计算。整体评审完成由 Stage 3 (referenced/integrated) 触发。
+        # v1.6.1 fix: 浅扫阶段完成后将 status 改为 'completed'，避免 status='running'
+        # 脏数据导致 _dispatch_one 误判为仍在飞行中而跳过老库重扫。
+        # stage_status 才是漏斗进度的权威字段，前端按 stage_status 区分各阶段。
         if review is not None:
             await repo.update_deep_review(
                 body.deep_review_id,
+                status=EcosystemDeepReviewStatus.COMPLETED,
                 completed_at=datetime.now(tz=timezone.utc),
             )
 

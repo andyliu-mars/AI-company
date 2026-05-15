@@ -45,6 +45,7 @@ async def _make_profile(
     project_id: str = "proj-test",
     is_active: bool = True,
     shallow_summary: str = "",
+    last_shallow_refreshed_at: datetime | None = None,
 ) -> str:
     """Insert a profile and return its id."""
     profile = EcosystemRepoProfile(
@@ -55,6 +56,9 @@ async def _make_profile(
         stars=stars,
         is_active=is_active,
         shallow_summary=shallow_summary,
+        # Bug 2 修复后：有 summary 且 pushed_at <= last_shallow_refreshed_at 才跳过。
+        # 测试中若要模拟"已完成刷新"，需要传一个比 pushed_at 更新的 last_shallow_refreshed_at。
+        last_shallow_refreshed_at=last_shallow_refreshed_at,
         last_scanned_at=datetime.now(tz=timezone.utc),
     )
     await repo.upsert_ecosystem_profile(profile, project_id=project_id)
@@ -88,13 +92,23 @@ async def _seed_settings(
 async def test_tick_dispatches_active_profiles_missing_summary(
     repo: StorageRepository,
 ) -> None:
-    """tick() picks active profiles with empty shallow_summary and dispatches."""
+    """tick() picks active profiles with empty shallow_summary and dispatches.
+
+    Bug 2 修复后语义：
+    - owner/a, owner/b: 无 summary → 候选
+    - owner/c: 有 summary 且 last_shallow_refreshed_at 设为刚刚（> pushed_at=None），
+      _has_new_push 返回 False → 跳过
+    """
     await _seed_settings(repo)
     repo_a = await _make_profile(repo, "owner/a", stars=10000)
     repo_b = await _make_profile(repo, "owner/b", stars=5000)
-    # Already-summarized profile should be skipped.
+    # 已有总结且刷新时间戳最新 → 没有新 push → 跳过
     await _make_profile(
-        repo, "owner/c", stars=4000, shallow_summary="既有总结"
+        repo,
+        "owner/c",
+        stars=4000,
+        shallow_summary="既有总结",
+        last_shallow_refreshed_at=datetime.now(tz=timezone.utc),
     )
 
     worker = EcosystemShallowQueueWorker(repo, project_id="proj-test")
@@ -118,15 +132,21 @@ async def test_tick_dispatches_active_profiles_missing_summary(
         assert intent.repo_full_name in review.dispatch_prompt
 
 
-async def test_tick_respects_concurrency_budget(repo: StorageRepository) -> None:
-    """Concurrency from project settings caps dispatches per tick."""
+async def test_tick_dispatches_all_candidates_no_budget_cap(
+    repo: StorageRepository,
+) -> None:
+    """Bug 3 修复：tick() 一次性 dispatch 全部候选，不再受 concurrency 上限限制。
+
+    concurrency 设置保留，但节流移至 worker claim 阶段，dispatch 阶段无上限。
+    """
     await _seed_settings(repo, concurrency=2)
     for i in range(5):
         await _make_profile(repo, f"owner/r{i}", stars=2000 + i)
 
     worker = EcosystemShallowQueueWorker(repo, project_id="proj-test")
     result = await worker.tick()
-    assert result.dispatched == 2
+    # 所有 5 个候选全部入队，不再只取前 concurrency=2 个
+    assert result.dispatched == 5
     assert result.queued == 5
 
 
@@ -235,18 +255,33 @@ async def test_settings_auto_created_when_missing(
 
 
 async def test_queue_status_returns_metrics(repo: StorageRepository) -> None:
-    """queue_status() reports active / pending / failed counts."""
+    """queue_status() reports accurate counts from DR table (Bug 4 修复).
+
+    owner/a: 无 summary → _find_candidates 收入 → tick() 后 DR 行 stage=queued → pending=1
+    owner/b: 有 summary + last_shallow_refreshed_at 最新 → 跳过 → DR 行 0 → pending 不变
+    owner/del: 被删 → 计入 deleted，不参与 DR 计数
+    """
     await _seed_settings(repo)
-    await _make_profile(repo, "owner/a", stars=2000)  # pending
+    await _make_profile(repo, "owner/a", stars=2000)  # 无 summary → 候选
     await _make_profile(
-        repo, "owner/b", stars=2000, shallow_summary="done"
-    )  # active+done
+        repo,
+        "owner/b",
+        stars=2000,
+        shallow_summary="done",
+        last_shallow_refreshed_at=datetime.now(tz=timezone.utc),  # 最新时间戳 → 跳过
+    )
     deleted = await _make_profile(repo, "owner/del", stars=2000)
     await repo.mark_profile_deleted(deleted, project_id="proj-test")
 
     worker = EcosystemShallowQueueWorker(repo, project_id="proj-test")
+
+    # 先跑一次 tick 让 owner/a 进入 DR 表（stage=queued）
+    await worker.tick()
+
     status = await worker.queue_status()
-    assert status["pending_shallow"] == 1
+    # Bug 4 修复后：pending 来自 DR 行 stage_status='queued' AND claimed_by IS NULL
+    assert status["pending"] == 1
+    assert status["pending_shallow"] == 1  # 向后兼容别名
     assert status["deleted"] == 1
     assert status["concurrency"] == 5
 
@@ -259,3 +294,137 @@ async def test_no_project_id_returns_empty_tick(repo: StorageRepository) -> None
     result = await worker.tick()
     assert result.dispatched == 0
     assert result.queued == 0
+
+
+# ============================================================
+# Bug 2 二次修复: stage_status 判定测试 (v1.6.1)
+# ============================================================
+
+
+async def test_tick_dispatches_shallow_done_repo_with_new_push(
+    repo: StorageRepository,
+) -> None:
+    """Bug 2 二次修复：stage='shallow_done' + 有新 push 的库应该被重新派遣。
+
+    模拟场景：profile 有 shallow_summary，pushed_at 比 last_shallow_refreshed_at 新
+    （即 _has_new_push 返回 True）。tick 应创建新 DR 行并 dispatch=1, skipped=0。
+    现有的 shallow_done DR 行不应阻止新一轮入队。
+    """
+    from datetime import timedelta
+
+    await _seed_settings(repo)
+    # pushed_at 为 now，last_shallow_refreshed_at 为过去（模拟有新 push）
+    old_refresh_time = datetime.now(tz=timezone.utc) - timedelta(days=7)
+    rid = await _make_profile(
+        repo,
+        "owner/old-with-new-push",
+        stars=3000,
+        shallow_summary="旧总结",
+        last_shallow_refreshed_at=old_refresh_time,
+    )
+    # 手动设置 pushed_at 比 last_shallow_refreshed_at 更新（模拟 GitHub 新推送）
+    # 直接更新 profile pushed_at 为 now (比 last_shallow_refreshed_at 更新)
+    from aiteam.types import EcosystemDeepReview, EcosystemDeepReviewStatus, EcosystemStageStatus
+
+    # 先创建一个历史 shallow_done DR 行（status='running' 是历史脏数据场景）
+    history_dr = EcosystemDeepReview(
+        project_id="proj-test",
+        repo_id=rid,
+        status=EcosystemDeepReviewStatus.RUNNING,  # 历史脏数据
+        stage_status=EcosystemStageStatus.SHALLOW_DONE,  # 已完成阶段
+    )
+    await repo.create_deep_review(history_dr, project_id="proj-test")
+
+    # 更新 profile 的 pushed_at 为比 last_shallow_refreshed_at 更新的时间
+    profile = await repo.get_ecosystem_profile_by_id(rid, project_id="proj-test")
+    assert profile is not None
+    new_pushed_at = datetime.now(tz=timezone.utc)  # 新 push 时间
+    await repo.update_profile_shallow_summary(
+        rid,
+        shallow_summary=profile.shallow_summary or "旧总结",
+        refreshed_at=old_refresh_time,
+        project_id="proj-test",
+    )
+    # 直接设置 pushed_at 为新时间
+    from aiteam.storage.models import EcosystemRepoProfileModel
+    from aiteam.storage.connection import get_session
+    async with get_session(repo._db_url) as session:
+        from sqlalchemy import select as sa_select, update as sa_update
+        stmt = sa_update(EcosystemRepoProfileModel).where(
+            EcosystemRepoProfileModel.id == rid
+        ).values(pushed_at=new_pushed_at)
+        await session.execute(stmt)
+        await session.flush()
+
+    worker = EcosystemShallowQueueWorker(repo, project_id="proj-test")
+    result = await worker.tick()
+
+    # 有新 push 的老库（stage=shallow_done）应该被重新派遣，不被跳过
+    assert result.dispatched == 1, f"expected dispatched=1, got dispatched={result.dispatched}, skipped={result.skipped_inflight}"
+    assert result.skipped_inflight == 0
+
+
+async def test_tick_skips_queued_stage_dr_row(repo: StorageRepository) -> None:
+    """Bug 2 二次修复：stage='queued' 的 DR 行应被跳过（真正 in-flight）。
+
+    模拟场景：profile 没有 summary，tick 创建 DR 行后 stage=queued。
+    第二次 tick 应识别 stage=queued 的 DR 行并 skip，不重复 dispatch。
+    """
+    await _seed_settings(repo)
+    await _make_profile(repo, "owner/inflight", stars=4000)
+
+    worker = EcosystemShallowQueueWorker(repo, project_id="proj-test")
+    first = await worker.tick()
+    assert first.dispatched == 1  # 首次正常入队
+
+    # 将刚创建的 DR 行 stage_status 保持为 queued（默认就是 queued），模拟未完成
+    second = await worker.tick()
+    assert second.dispatched == 0
+    assert second.skipped_inflight == 1  # stage=queued 被正确跳过
+
+
+async def test_backfill_shallow_done_status_completed(repo: StorageRepository) -> None:
+    """backfill 方法将 stage='shallow_done' + status='running' 的行修正为 'completed'。
+
+    1. 创建 stage=shallow_done + status=running 的脏数据行（历史场景）
+    2. 创建 stage=shallow_done + status=completed 的干净行（不应被改动）
+    3. 运行 backfill
+    4. 验证脏数据行变为 completed，干净行不变
+    """
+    from aiteam.types import EcosystemDeepReview, EcosystemDeepReviewStatus, EcosystemStageStatus
+
+    await _seed_settings(repo)
+    rid = await _make_profile(repo, "owner/backfill-test", stars=2000)
+
+    # 创建脏数据行：stage=shallow_done + status=running
+    dirty_dr = EcosystemDeepReview(
+        project_id="proj-test",
+        repo_id=rid,
+        status=EcosystemDeepReviewStatus.RUNNING,
+        stage_status=EcosystemStageStatus.SHALLOW_DONE,
+    )
+    await repo.create_deep_review(dirty_dr, project_id="proj-test")
+
+    # 创建干净行：stage=shallow_done + status=completed (不同 repo_id 以便区分)
+    rid2 = await _make_profile(repo, "owner/backfill-clean", stars=2000)
+    clean_dr = EcosystemDeepReview(
+        project_id="proj-test",
+        repo_id=rid2,
+        status=EcosystemDeepReviewStatus.COMPLETED,
+        stage_status=EcosystemStageStatus.SHALLOW_DONE,
+    )
+    await repo.create_deep_review(clean_dr, project_id="proj-test")
+
+    # 运行 backfill
+    fixed_count = await repo.backfill_shallow_done_status_completed(project_id="proj-test")
+    assert fixed_count == 1, f"expected 1 row fixed, got {fixed_count}"
+
+    # 验证脏数据行已修正
+    dirty_dr_updated = await repo.get_deep_review(dirty_dr.id, project_id="proj-test")
+    assert dirty_dr_updated is not None
+    assert dirty_dr_updated.status == EcosystemDeepReviewStatus.COMPLETED
+
+    # 验证干净行未被二次修改（仍是 completed，rowcount 不计入）
+    clean_dr_check = await repo.get_deep_review(clean_dr.id, project_id="proj-test")
+    assert clean_dr_check is not None
+    assert clean_dr_check.status == EcosystemDeepReviewStatus.COMPLETED

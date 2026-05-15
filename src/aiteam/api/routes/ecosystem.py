@@ -145,8 +145,7 @@ def _profile_to_dict(
         "homepage": p.homepage,
         "last_commit_at": p.last_commit_at.isoformat() if p.last_commit_at else None,
         "needs_deep_review": p.needs_deep_review,
-        "relevance_category": p.relevance_category,
-        "relevance_score": p.relevance_score,
+        # v1.6.1: relevance_category/relevance_score 弃用（硬编码启发式无参考价值），不再透出
         "one_line_summary": p.one_line_summary,
         "last_scanned_at": p.last_scanned_at.isoformat(),
         "first_seen_at": p.first_seen_at.isoformat(),
@@ -173,6 +172,11 @@ def _profile_to_dict(
         # v1.6.0-P1.A manual status fields
         "last_active_status": p.last_active_status,
         "manual_status": p.manual_status,
+        # v1.6.1 multi-source
+        "sources": p.sources or [],
+        "primary_source": p.primary_source or "github",
+        "canonical_id": p.canonical_id,
+        "source_kind": p.source_kind,
     }
 
 
@@ -194,9 +198,7 @@ def _profile_to_list_dict(
         "stars": p.stars,
         "language": p.language,
         "topics": p.topics,
-        "relevance_category": p.relevance_category,
-        # v1.6.0 SST: expose relevance_score so detail=false list doesn't show "undefined/10"
-        "relevance_score": p.relevance_score if p.relevance_score is not None else 0,
+        # v1.6.1: relevance_category/relevance_score 弃用（硬编码启发式无参考价值），不再透出
         "one_line_summary": p.one_line_summary,
         "description_excerpt": _make_summary_excerpt(p.description, 150),
         "is_archived": p.is_archived,
@@ -204,6 +206,9 @@ def _profile_to_list_dict(
         "manual_status": p.manual_status,
         "canonical_id": p.canonical_id,
         "source_kind": p.source_kind,
+        # v1.6.1 multi-source: 前端卡片用 sources 列表渲染多源徽章
+        "sources": p.sources or [],
+        "primary_source": p.primary_source or "github",
         "last_commit_at": p.last_commit_at.isoformat() if p.last_commit_at else None,
         "last_scanned_at": p.last_scanned_at.isoformat(),
         "pushed_at": p.pushed_at.isoformat() if p.pushed_at else None,
@@ -309,7 +314,7 @@ async def search_profiles(
     """检索生态仓档案列表（Stage E 扩展版）。
 
     - tags: 逗号分隔的标签名列表，配合 tag_match_mode (all/any) 实现 AND/OR 过滤
-    - sort: stars / recency (pushed_at desc) / relevance (relevance_score desc)
+    - sort: stars / recency (pushed_at desc)  [v1.6.1: relevance 排序已弃用]
     - facet_counts: True 时附带 category/language/archived 聚合分布
     - is_active / is_deleted / stage_status: v1.5.0-E 前端筛选（活跃/全量 tab、failed 筛选）
     - detail=false (default): 返回摘要字段（P1.B 分层返回，不含 shallow_summary 长文本）

@@ -548,6 +548,11 @@ class EcosystemRepoProfile(BaseModel):
     manual_status_set_by: str | None = None
     # v1.6.0-P1.C-1: JSON array of query strings that discovered this repo
     discovered_via_queries: list[str] = Field(default_factory=list)
+    # v1.6.1 multi-source: list of source entries [{kind,id,stars/likes,url,last_seen_at}, ...]
+    # 一个 profile 多个来源（GitHub + HF Space + GitLab）合并显示，不再为同项目建多 profile
+    sources: list[dict] = Field(default_factory=list)
+    # v1.6.1 primary source — decides canonical URL/title; default 'github' for legacy rows
+    primary_source: str = "github"
 
 
 # ============================================================

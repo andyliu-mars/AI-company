@@ -159,6 +159,11 @@ COLUMNS_TO_ENSURE: list[tuple[str, str, str]] = [
     ("ecosystem_index_diffs", "removed_from_query_count", "INTEGER DEFAULT 0"),
     # v1.6.0-P1.C-1: which search queries first/subsequently discovered this repo
     ("ecosystem_repo_profiles", "discovered_via_queries", "TEXT DEFAULT NULL"),
+    # v1.6.1 multi-source: sources JSON list + primary_source enum
+    # sources = [{kind, id, stars/likes, url, last_seen_at}, ...]
+    # primary_source = "github" / "hf_space" / "gitlab" — decides canonical_id & UI primary link
+    ("ecosystem_repo_profiles", "sources", "TEXT DEFAULT NULL"),
+    ("ecosystem_repo_profiles", "primary_source", "VARCHAR(20) DEFAULT 'github'"),
     # v1.6.0 event sourcing: ecosystem_repo_events columns (table created by create_all,
     # these entries guard against future column additions on existing DBs)
     ("ecosystem_repo_events", "payload_json", "TEXT"),

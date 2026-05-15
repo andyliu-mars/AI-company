@@ -1034,6 +1034,10 @@ class EcosystemRepoProfileModel(Base):
     manual_status_set_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
     # v1.6.0-P1.C-1: JSON-serialized list of query strings
     discovered_via_queries: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # v1.6.1 multi-source: JSON list [{kind,id,stars/likes,url,last_seen_at}, ...]
+    sources: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # v1.6.1 primary_source: decides canonical_id + UI primary link ("github"/"hf_space"/"gitlab")
+    primary_source: Mapped[str] = mapped_column(String(20), default="github")
 
     def to_pydantic(self) -> EcosystemRepoProfile:
         """Convert to Pydantic model."""
@@ -1052,6 +1056,13 @@ class EcosystemRepoProfileModel(Base):
                 discovered_via_queries_list = json.loads(self.discovered_via_queries)
             except Exception:
                 discovered_via_queries_list = []
+
+        sources_list: list[dict] = []
+        if self.sources:
+            try:
+                sources_list = json.loads(self.sources)
+            except Exception:
+                sources_list = []
 
         return EcosystemRepoProfile(
             id=self.id,
@@ -1094,6 +1105,8 @@ class EcosystemRepoProfileModel(Base):
             manual_status_set_at=self.manual_status_set_at,
             manual_status_set_by=self.manual_status_set_by,
             discovered_via_queries=discovered_via_queries_list,
+            sources=sources_list,
+            primary_source=self.primary_source or "github",
         )
 
     @classmethod
@@ -1142,6 +1155,8 @@ class EcosystemRepoProfileModel(Base):
             manual_status_set_at=p.manual_status_set_at,
             manual_status_set_by=p.manual_status_set_by,
             discovered_via_queries=json.dumps(p.discovered_via_queries) if p.discovered_via_queries else None,
+            sources=json.dumps(p.sources) if p.sources else None,
+            primary_source=p.primary_source or "github",
         )
 
 

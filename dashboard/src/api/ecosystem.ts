@@ -14,8 +14,10 @@ export interface EcosystemRepoProfile {
   homepage: string | null;
   last_commit_at: string | null;
   needs_deep_review: boolean;
-  relevance_category: string | null;
-  relevance_score: number;
+  /** @deprecated v1.6.1: relevance_category 启发式分类已弃用，后端不再返回 */
+  relevance_category?: string | null;
+  /** @deprecated v1.6.1: relevance_score 硬编码评分无参考价值，后端不再返回 */
+  relevance_score?: number;
   one_line_summary: string | null;
   last_scanned_at: string;
   first_seen_at: string;
@@ -41,6 +43,11 @@ export interface EcosystemRepoProfile {
   research_count?: number;
   // v1.6.0：last_active_status — 'active' / 'archived' / 'manual_archived' / 'pinned' / null
   last_active_status?: string | null;
+  // v1.6.1 多源：sources 列表 + primary_source
+  sources?: { kind: string; id: string; url: string; [k: string]: unknown }[];
+  primary_source?: string;
+  canonical_id?: string | null;
+  source_kind?: string;
 }
 
 // v1.5.0 漏斗 stage 状态

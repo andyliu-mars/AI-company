@@ -220,9 +220,7 @@ export function RepoCard({ repo, stage: stageProp, topicRankMap }: RepoCardProps
                 待深扫
               </span>
             )}
-            {repo.relevance_score > 0 && !repo.needs_deep_review && (
-              <span className="ml-auto">相关性 {repo.relevance_score}/10</span>
-            )}
+            {/* v1.6.1: 删除"相关性 X/10" — relevance_score 硬编码评分无参考价值 */}
           </div>
         </CardContent>
       </Card>

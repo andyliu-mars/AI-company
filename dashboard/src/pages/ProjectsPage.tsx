@@ -76,7 +76,7 @@ function ProjectExpandedRow({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-muted-foreground">{t.projects.expandLastUpdated}:</span>
-            <span>{new Date(updatedAt).toLocaleString('zh-CN')}</span>
+            <span>{new Date(summary.last_activity_at ?? updatedAt).toLocaleString('zh-CN')}</span>
           </div>
         </div>
         {summary.top_tasks.length > 0 && (

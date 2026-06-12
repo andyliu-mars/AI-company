@@ -61,6 +61,7 @@ export interface ProjectSummary {
   active_teams: number;
   pending_tasks: number;
   running_tasks: number;
+  last_activity_at?: string | null;
   top_tasks: { title: string; priority: string }[];
 }
 
@@ -70,5 +71,6 @@ export function useProjectSummary(projectId: string) {
     queryFn: () => apiFetch<ProjectSummary>(`/api/projects/${projectId}/summary`),
     enabled: !!projectId,
     staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 }

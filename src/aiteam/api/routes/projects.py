@@ -115,10 +115,38 @@ async def project_summary(
     pending_tasks = await repo.list_tasks_by_project(project_id, status=TaskStatus.PENDING)
     running_tasks = await repo.list_tasks_by_project(project_id, status=TaskStatus.RUNNING)
 
+    # Live CC session: a leader agent bound to this project whose last_active_at
+    # is fresh (hooks refresh it on every tool call) means someone is working in
+    # this project right now, even with no running task on the wall.
+    from datetime import datetime, timedelta, timezone
+
+    live_session = False
+    last_activity_at: str | None = None
+    try:
+        leaders = await repo.find_agents_by_role("leader")
+        now = datetime.now(tz=timezone.utc)
+        freshest = None
+        for leader in leaders:
+            if getattr(leader, "project_id", None) != project_id:
+                continue
+            ts = getattr(leader, "last_active_at", None)
+            if ts is None:
+                continue
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            if freshest is None or ts > freshest:
+                freshest = ts
+        if freshest is not None:
+            last_activity_at = freshest.isoformat()
+            live_session = (now - freshest) < timedelta(minutes=15)
+    except Exception:  # noqa: BLE001 — summary must not fail on liveness probe
+        pass
+
     # Determine project status: active only if work is actively in progress
-    # (any team active or any task running). Pending backlog alone doesn't count
-    # — every project with unfinished tasks would otherwise be "active" forever.
-    is_active = len(active_teams) > 0 or len(running_tasks) > 0
+    # (any team active, any task running, or a live CC session in this project).
+    # Pending backlog alone doesn't count — every project with unfinished tasks
+    # would otherwise be "active" forever.
+    is_active = len(active_teams) > 0 or len(running_tasks) > 0 or live_session
 
     # Top 3 pending tasks sorted by priority
     priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -132,6 +160,7 @@ async def project_summary(
         "active_teams": len(active_teams),
         "pending_tasks": len(pending_tasks),
         "running_tasks": len(running_tasks),
+        "last_activity_at": last_activity_at,
         "top_tasks": [
             {"title": t.title, "priority": str(t.priority)}
             for t in top_tasks

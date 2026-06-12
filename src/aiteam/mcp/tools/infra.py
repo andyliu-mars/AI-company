@@ -76,23 +76,39 @@ def _restart_spawn_on_port(autostart, port: int) -> dict[str, Any]:
     """
     import subprocess
     import sys
+    import tempfile
 
-    try:
-        proc = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "uvicorn",
-                "aiteam.api.app:create_app",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                str(port),
-                "--factory",
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
+    # Detach fully from the MCP server's stdio. Spawning from inside an MCP
+    # *tool call* (unlike _autostart's init-time spawn) inherits the live MCP
+    # stdio pipes; an inherited stdin/stderr handle made the child hang before
+    # imports (observed: stuck at 9MB forever). stderr goes to a log file so
+    # startup failures stay diagnosable.
+    stderr_log = os.path.join(tempfile.gettempdir(), "aiteam-api-restart.log")
+    creationflags = 0
+    if sys.platform == "win32":
+        creationflags = (
+            subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
         )
+    try:
+        with open(stderr_log, "ab") as log_fh:
+            proc = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "uvicorn",
+                    "aiteam.api.app:create_app",
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    str(port),
+                    "--factory",
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=log_fh,
+                close_fds=True,
+                creationflags=creationflags,
+            )
     except Exception as exc:
         return {
             "success": False,

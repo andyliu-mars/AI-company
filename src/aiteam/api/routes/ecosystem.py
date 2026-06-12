@@ -1769,7 +1769,9 @@ async def create_shallow_batch(
 
     from aiteam.types import EcosystemShallowBatch
 
-    now = datetime.now(tz=timezone.utc)
+    # Clock convention: profile timestamps are stored naive-local (same as the
+    # rest of the DB) — an aware UTC cutoff here raised TypeError on compare.
+    now = datetime.now()
     cutoff = now - timedelta(days=30)
 
     # 发现候选仓：读所有活跃档案，筛选需要浅扫的仓
@@ -1783,11 +1785,10 @@ async def create_shallow_batch(
         if p.last_active_status in ("archived", "manual_archived"):
             continue
         # 候选条件：无浅扫摘要 或 摘要超过 30 天
-        needs_refresh = (
-            not p.shallow_summary
-            or p.last_shallow_refreshed_at is None
-            or p.last_shallow_refreshed_at < cutoff
-        )
+        ts = p.last_shallow_refreshed_at
+        if ts is not None and ts.tzinfo is not None:
+            ts = ts.astimezone().replace(tzinfo=None)
+        needs_refresh = not p.shallow_summary or ts is None or ts < cutoff
         if needs_refresh:
             candidates.append(p.id)
 
@@ -1877,7 +1878,7 @@ async def approve_shallow_batch(
             detail=f"batch status is '{batch.status}', only pending_approval can be approved",
         )
 
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now()  # naive-local, matches DB-wide clock convention
 
     # 读候选快照，为每个 repo 创建 DR 行（若已有未完成行则跳过）
     candidate_ids: list[str] = []

@@ -25,6 +25,7 @@ interface FormState {
   focus_languages: string[];
   shallow_concurrency: number;
   deep_concurrency: number;
+  alert_max_new_per_scan: number;
 }
 
 const DEFAULTS: FormState = {
@@ -36,6 +37,7 @@ const DEFAULTS: FormState = {
   focus_languages: [],
   shallow_concurrency: 5,
   deep_concurrency: 3,
+  alert_max_new_per_scan: 50,
 };
 
 /**
@@ -63,6 +65,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
         focus_languages: data.focus_languages ?? [],
         shallow_concurrency: data.shallow_concurrency,
         deep_concurrency: data.deep_concurrency,
+        alert_max_new_per_scan: data.alert_max_new_per_scan ?? 50,
       });
     }
   }, [data]);
@@ -168,7 +171,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="refresh-interval">浅扫刷新间隔（天）</Label>
+            <Label htmlFor="refresh-interval">自动检测周期（天）</Label>
             <Input
               id="refresh-interval"
               type="number"
@@ -183,7 +186,12 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
                 })
               }
             />
-            <p className="text-[10px] text-muted-foreground">超过此天数未刷新的仓会重新浅扫</p>
+            <p className="text-[10px] text-muted-foreground">
+              自动检测周期（每 N 天 cron 触发新批次扫描，检测新增库 + 已入档库的更新）
+            </p>
+            <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+              提示：这是 cron 调度周期，不是过期阈值。老库重扫由 GitHub repo 的 push 时间决定（pushed_at &gt; last_shallow_refreshed_at）
+            </p>
           </div>
 
           <div className="space-y-1">
@@ -220,6 +228,25 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
               }
             />
             <p className="text-[10px] text-muted-foreground">Stage 1+ batch 派遣并发数</p>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="alert-max-new">告警阈值：单次新增上限</Label>
+            <Input
+              id="alert-max-new"
+              type="number"
+              min={1}
+              max={10000}
+              step={10}
+              value={form.alert_max_new_per_scan}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  alert_max_new_per_scan: Math.max(1, Number(e.target.value) || 1),
+                })
+              }
+            />
+            <p className="text-[10px] text-muted-foreground">单次扫描新增仓超过此数时触发告警（不提交结果）</p>
           </div>
 
           <div className="space-y-1">

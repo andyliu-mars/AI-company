@@ -483,6 +483,62 @@ async def _backfill_shallow_done_status(repo: StorageRepository) -> None:
         logger.warning("_backfill_shallow_done_status failed (non-fatal): %s", exc)
 
 
+async def _backfill_alert_max_new_per_scan(repo: StorageRepository) -> None:
+    """v1.6.1 Phase 2 启动迁移：从 scan_profile.alert_thresholds 迁移 max_new_per_scan 到 settings。
+
+    仅迁移 settings.alert_max_new_per_scan 仍是默认值 50 且 scan_profile 有非默认值时。
+    幂等：已迁移过的项目跳过（settings 中值 != 50 则视为已迁移或用户已手动设置）。
+    """
+    try:
+        projects = await repo.list_projects()
+        if not projects:
+            return
+        for project in projects:
+            try:
+                settings = await repo.ensure_ecosystem_project_settings(project.id)
+                # 若已非默认值，说明用户已设置或已迁移过，跳过
+                current_val = getattr(settings, "alert_max_new_per_scan", 50)
+                if current_val != 50:
+                    continue
+                # 查找该项目活跃的 scan_profile
+                scan_profile = await repo.get_active_scan_profile(project.id)
+                if scan_profile is None:
+                    continue
+                profile_data = scan_profile.profile or {}
+                alert_thresholds = profile_data.get("alert_thresholds", {})
+                sp_max_new = alert_thresholds.get("max_new_per_scan")
+                if sp_max_new is not None and sp_max_new != 50:
+                    # 迁移非默认值到 settings
+                    from aiteam.types import EcosystemProjectSettings as _Settings
+                    updated = _Settings(
+                        project_id=project.id,
+                        min_stars=settings.min_stars,
+                        top_n=settings.top_n,
+                        refresh_interval_days=settings.refresh_interval_days,
+                        auto_shallow_on_archive=settings.auto_shallow_on_archive,
+                        focus_topics=settings.focus_topics,
+                        focus_languages=settings.focus_languages,
+                        shallow_concurrency=settings.shallow_concurrency,
+                        deep_concurrency=settings.deep_concurrency,
+                        alert_max_new_per_scan=sp_max_new,
+                        created_at=settings.created_at,
+                    )
+                    await repo.upsert_ecosystem_project_settings(updated)
+                    logger.info(
+                        "backfill alert_max_new_per_scan: project=%s migrated %d from scan_profile",
+                        project.id[:8],
+                        sp_max_new,
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "_backfill_alert_max_new_per_scan project=%s failed: %s",
+                    project.id[:8],
+                    exc,
+                )
+    except Exception as exc:
+        logger.warning("_backfill_alert_max_new_per_scan failed (non-fatal): %s", exc)
+
+
 async def _ensure_ecosystem_weekly_cron(repo: StorageRepository) -> None:
     """Bug 1 修复：启动时幂等确保 ecosystem 周期刷新 cron 任务已注册。
 
@@ -645,6 +701,9 @@ async def init_dependencies() -> None:
 
     # Stage J: refresh project_dir → project_id resolution cache
     await refresh_project_dir_cache(_repository)
+
+    # v1.6.1 Phase 2: backfill alert_max_new_per_scan from scan_profile to settings
+    await _backfill_alert_max_new_per_scan(_repository)
 
     # Bug 1 修复：幂等注册 ecosystem 周期刷新 cron 任务
     await _ensure_ecosystem_weekly_cron(_repository)

@@ -63,8 +63,24 @@ function ScanRunRow({ run, isLatest }: { run: EcosystemScanRun; isLatest?: boole
         {formatDuration(run.started_at, run.completed_at)}
       </span>
       <span className="text-muted-foreground">
-        新增 <span className="text-foreground font-medium">{run.repos_added}</span> · 更新{' '}
-        <span className="text-foreground font-medium">{run.repos_updated}</span>
+        <span title="首次入档的仓数（DB 之前没有）">
+          新增 <span className="text-foreground font-medium">{run.repos_added}</span>
+        </span>
+        {' · '}
+        <span
+          title={
+            run.metadata_changed_count != null && run.metadata_changed_count > 0
+              ? `已在 DB 的仓重新拉取元数据。${run.metadata_changed_count} 个真实有 topics/stars/description 变化，剩余仅刷新 last_scanned_at`
+              : '已在 DB 的仓重新拉取元数据（无真实变化）'
+          }
+        >
+          更新 <span className="text-foreground font-medium">{run.repos_updated}</span>
+          {run.metadata_changed_count != null && run.metadata_changed_count > 0 && (
+            <span className="text-amber-600 dark:text-amber-400">
+              {' '}(含 {run.metadata_changed_count} 真实变化)
+            </span>
+          )}
+        </span>
       </span>
       {isLatest && (
         <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 ml-auto">

@@ -304,6 +304,7 @@ class EcosystemScanner:
         updated_count = 0
         skipped = 0
         archived_marked = 0
+        metadata_changed_count = 0
 
         for repo_data in all_repos.values():
             try:
@@ -392,11 +393,15 @@ class EcosystemScanner:
                 else:
                     updated_count += 1
                     # v1.6.0: detect metadata changes and write events
+                    # v1.6.1 Phase 2: also track metadata_changed_count for scan run stats
                     try:
                         events_to_write: list[EcosystemRepoEvent] = []
+                        metadata_changed = False
+
                         old_topics = set(existing.topics or [])
                         new_topics = set(repo_data.get("topics") or [])
                         if old_topics != new_topics:
+                            metadata_changed = True
                             events_to_write.append(EcosystemRepoEvent(
                                 repo_id=existing.id,
                                 project_id=self._project_id or None,
@@ -413,6 +418,7 @@ class EcosystemScanner:
                         if old_stars > 0 and new_stars > 0:
                             pct_change = (new_stars - old_stars) / old_stars
                             if abs(pct_change) >= 0.10:
+                                metadata_changed = True
                                 events_to_write.append(EcosystemRepoEvent(
                                     repo_id=existing.id,
                                     project_id=self._project_id or None,
@@ -425,6 +431,14 @@ class EcosystemScanner:
                                     source="scanner",
                                     scan_run_id=scan_run.id,
                                 ))
+                        # check description and language changes
+                        if (existing.description or "") != (repo_data.get("description") or ""):
+                            metadata_changed = True
+                        if (existing.language or "") != (repo_data.get("language") or ""):
+                            metadata_changed = True
+
+                        if metadata_changed:
+                            metadata_changed_count += 1
                         if events_to_write:
                             await self._repo.bulk_create_repo_events(events_to_write)
                     except Exception as ev_exc:
@@ -446,6 +460,7 @@ class EcosystemScanner:
             repos_added=new_count,
             repos_updated=updated_count,
             repos_skipped=skipped,
+            metadata_changed_count=metadata_changed_count,
             errors=errors,
             notes=notes
             or f"strategy={strategy.value} queries={len(active_queries)} archived={archived_marked}",

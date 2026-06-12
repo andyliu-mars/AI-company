@@ -831,6 +831,7 @@ def _serialize_full(payload: dict[str, Any]) -> dict[str, Any]:
                 "repos_added": scan_run.repos_added,
                 "repos_updated": scan_run.repos_updated,
                 "repos_skipped": scan_run.repos_skipped,
+                "metadata_changed_count": getattr(scan_run, "metadata_changed_count", 0),
                 "errors": scan_run.errors,
                 "notes": scan_run.notes,
                 "triggered_by": scan_run.triggered_by,
@@ -859,6 +860,8 @@ def _scan_run_to_dict(run: EcosystemScanRun) -> dict[str, Any]:
         "repos_added": run.repos_added,
         "repos_updated": run.repos_updated,
         "repos_skipped": run.repos_skipped,
+        # v1.6.1 Phase 2: real metadata change count
+        "metadata_changed_count": getattr(run, "metadata_changed_count", 0),
         "errors": run.errors,
         "notes": run.notes,
         "triggered_by": run.triggered_by,
@@ -1737,6 +1740,246 @@ async def lifecycle_trigger_debate(
 
 
 # ============================================================
+# v1.7.0: 浅扫批次管理 endpoints
+# ============================================================
+
+
+class CreateShallowBatchBody(BaseModel):
+    triggered_by: str = "user"  # 'cron' / 'manual' / 'user'
+    trigger_reason: str | None = None
+
+
+class ApproveBatchBody(BaseModel):
+    approved_by: str = "user"
+
+
+@router.post("/shallow_batches")
+async def create_shallow_batch(
+    body: CreateShallowBatchBody,
+    repo: StorageRepository = Depends(get_scoped_repository),
+) -> dict[str, Any]:
+    """创建新浅扫批次 — 发现候选仓并固化快照，状态=pending_approval，等待人工审批。
+
+    候选仓逻辑：活跃仓（is_deleted=False, last_active_status != 'archived'）中
+    shallow_summary 为空或过期（> 30 天未刷新）的仓。
+    """
+    import json
+    import uuid
+    from datetime import timedelta
+
+    from aiteam.types import EcosystemShallowBatch
+
+    now = datetime.now(tz=timezone.utc)
+    cutoff = now - timedelta(days=30)
+
+    # 发现候选仓：读所有活跃档案，筛选需要浅扫的仓
+    all_profiles = await repo.search_ecosystem_profiles(limit=1000)
+
+    candidates = []
+    for p in all_profiles:
+        # 排除已删除 / 私有 / 归档
+        if p.is_deleted or p.is_private_now:
+            continue
+        if p.last_active_status in ("archived", "manual_archived"):
+            continue
+        # 候选条件：无浅扫摘要 或 摘要超过 30 天
+        needs_refresh = (
+            not p.shallow_summary
+            or p.last_shallow_refreshed_at is None
+            or p.last_shallow_refreshed_at < cutoff
+        )
+        if needs_refresh:
+            candidates.append(p.id)
+
+    batch = EcosystemShallowBatch(
+        id=str(uuid.uuid4()),
+        project_id=repo._project_scope or None,
+        triggered_by=body.triggered_by,
+        trigger_reason=body.trigger_reason,
+        candidates_count=len(candidates),
+        candidates_snapshot_json=json.dumps(candidates),
+        status="pending_approval",
+        created_at=now,
+        updated_at=now,
+    )
+    created = await repo.create_shallow_batch(batch)
+    return {
+        "success": True,
+        "batch_id": created.id,
+        "candidates_count": created.candidates_count,
+        "status": created.status,
+        "message": f"批次已创建，发现 {created.candidates_count} 个候选仓，等待审批",
+    }
+
+
+@router.get("/shallow_batches")
+async def list_shallow_batches(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    repo: StorageRepository = Depends(get_scoped_repository),
+) -> dict[str, Any]:
+    """列出浅扫批次（按 created_at 倒序）。"""
+    batches, total = await repo.list_shallow_batches(limit=limit, offset=offset)
+    return {
+        "batches": [_batch_to_dict(b) for b in batches],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/shallow_batches/{batch_id}")
+async def get_shallow_batch(
+    batch_id: str,
+    repo: StorageRepository = Depends(get_scoped_repository),
+) -> dict[str, Any]:
+    """查询单个浅扫批次详情。"""
+    batch = await repo.get_shallow_batch(batch_id)
+    if batch is None:
+        raise HTTPException(status_code=404, detail="batch not found")
+    return {"batch": _batch_to_dict(batch)}
+
+
+@router.get("/shallow_batches/{batch_id}/items")
+async def get_shallow_batch_items(
+    batch_id: str,
+    repo: StorageRepository = Depends(get_scoped_repository),
+) -> dict[str, Any]:
+    """查询批次内候选仓清单。"""
+    batch = await repo.get_shallow_batch(batch_id)
+    if batch is None:
+        raise HTTPException(status_code=404, detail="batch not found")
+    items = await repo.get_batch_items(batch_id)
+    return {
+        "batch_id": batch_id,
+        "items": items,
+        "total": len(items),
+    }
+
+
+@router.post("/shallow_batches/{batch_id}/approve")
+async def approve_shallow_batch(
+    batch_id: str,
+    body: ApproveBatchBody,
+    repo: StorageRepository = Depends(get_scoped_repository),
+) -> dict[str, Any]:
+    """审批通过批次 — 创建 DR 行并触发 tick 开始运行。"""
+    import json
+
+    from aiteam.types import EcosystemDeepReview, EcosystemDeepReviewStatus, EcosystemStageStatus
+
+    batch = await repo.get_shallow_batch(batch_id)
+    if batch is None:
+        raise HTTPException(status_code=404, detail="batch not found")
+    if batch.status != "pending_approval":
+        raise HTTPException(
+            status_code=400,
+            detail=f"batch status is '{batch.status}', only pending_approval can be approved",
+        )
+
+    now = datetime.now(tz=timezone.utc)
+
+    # 读候选快照，为每个 repo 创建 DR 行（若已有未完成行则跳过）
+    candidate_ids: list[str] = []
+    if batch.candidates_snapshot_json:
+        try:
+            candidate_ids = json.loads(batch.candidates_snapshot_json)
+        except Exception:
+            candidate_ids = []
+
+    created_count = 0
+    for repo_id in candidate_ids:
+        dr = EcosystemDeepReview(
+            project_id=batch.project_id,
+            repo_id=repo_id,
+            status=EcosystemDeepReviewStatus.QUEUED,
+            stage_status=EcosystemStageStatus.QUEUED,
+            batch_id=batch_id,
+            created_at=now,
+        )
+        try:
+            await repo.create_deep_review(dr)
+            created_count += 1
+        except Exception:
+            # 已存在同 repo 未完成 DR 时忽略重复
+            pass
+
+    # 更新批次状态
+    updated = await repo.update_shallow_batch(
+        batch_id,
+        status="running",
+        approved_by=body.approved_by,
+        approved_at=now,
+    )
+    if updated is None:
+        raise HTTPException(status_code=500, detail="failed to update batch status")
+
+    # 触发一次 tick 让 worker 开始认领
+    try:
+        worker = _get_shallow_worker(repo)
+        await worker.tick()
+    except Exception:
+        pass  # tick 失败不阻断审批
+
+    return {
+        "success": True,
+        "batch_id": batch_id,
+        "status": "running",
+        "dr_created": created_count,
+        "message": f"批次已批准，创建 {created_count} 个浅扫任务，worker 已触发",
+    }
+
+
+@router.post("/shallow_batches/{batch_id}/cancel")
+async def cancel_shallow_batch(
+    batch_id: str,
+    repo: StorageRepository = Depends(get_scoped_repository),
+) -> dict[str, Any]:
+    """取消批次 — 将 DR 行（如果有）标记为 cancelled。"""
+    batch = await repo.get_shallow_batch(batch_id)
+    if batch is None:
+        raise HTTPException(status_code=404, detail="batch not found")
+    if batch.status in ("completed", "cancelled"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"batch is already '{batch.status}', cannot cancel",
+        )
+
+    # 更新批次状态
+    updated = await repo.update_shallow_batch(batch_id, status="cancelled")
+    if updated is None:
+        raise HTTPException(status_code=500, detail="failed to cancel batch")
+
+    return {
+        "success": True,
+        "batch_id": batch_id,
+        "status": "cancelled",
+        "message": "批次已取消",
+    }
+
+
+def _batch_to_dict(b: Any) -> dict:
+    """将 EcosystemShallowBatch 转为 JSON-safe dict。"""
+    return {
+        "id": b.id,
+        "project_id": b.project_id,
+        "triggered_by": b.triggered_by,
+        "trigger_reason": b.trigger_reason,
+        "candidates_count": b.candidates_count,
+        "status": b.status,
+        "approved_by": b.approved_by,
+        "approved_at": b.approved_at.isoformat() if b.approved_at else None,
+        "completed_at": b.completed_at.isoformat() if b.completed_at else None,
+        "new_repos_count": b.new_repos_count,
+        "updated_repos_count": b.updated_repos_count,
+        "metadata_changed_count": b.metadata_changed_count,
+        "failed_count": b.failed_count,
+        "created_at": b.created_at.isoformat() if b.created_at else None,
+        "updated_at": b.updated_at.isoformat() if b.updated_at else None,
+    }
+
+
+# ============================================================
 # Worker pool claim endpoints (v1.5.3)
 # ============================================================
 
@@ -1770,11 +2013,27 @@ async def shallow_queue_claim(
     """认领下一个待浅扫仓（stage_status='queued'，claimed_by IS NULL）。
 
     原子操作：SELECT + UPDATE WHERE claimed_by IS NULL，并发安全。
+    v1.7.0: 补充 repo_full_name/topics/description/owner/stars/last_commit_at，
+            省去 worker 每仓一次 ecosystem_repo_get 调用。
     Returns claimed deep_review row or {"claimed": false} when queue is empty.
     """
     review = await repo.claim_next_shallow_repo(worker_id=body.worker_id)
     if review is None:
         return {"claimed": False}
+
+    # 拉 repo profile 基础字段
+    profile = await repo.get_ecosystem_profile_by_id(review.repo_id)
+    extra: dict[str, Any] = {}
+    if profile is not None:
+        extra = {
+            "repo_full_name": profile.repo_full_name,
+            "topics": profile.topics,
+            "description": profile.description,
+            "owner": profile.owner,
+            "stars": profile.stars,
+            "last_commit_at": profile.last_commit_at.isoformat() if profile.last_commit_at else None,
+        }
+
     return {
         "claimed": True,
         "dr_id": review.id,
@@ -1782,6 +2041,7 @@ async def shallow_queue_claim(
         "claimed_by": review.claimed_by,
         "claimed_at": review.claimed_at.isoformat() if review.claimed_at else None,
         "stage_status": review.stage_status.value if hasattr(review.stage_status, "value") else str(review.stage_status),
+        **extra,
     }
 
 
@@ -2011,6 +2271,8 @@ class ProjectSettingsBody(BaseModel):
     focus_languages: list[str] = Field(default_factory=list)
     shallow_concurrency: int = Field(default=5, ge=1, le=20)
     deep_concurrency: int = Field(default=3, ge=1, le=10)
+    # v1.6.1 Phase 2: migrated from scan_profile.alert_thresholds
+    alert_max_new_per_scan: int = Field(default=50, ge=1, le=10000)
 
 
 def _settings_to_dict(s: Any) -> dict[str, Any]:
@@ -2025,6 +2287,7 @@ def _settings_to_dict(s: Any) -> dict[str, Any]:
         "focus_languages": s.focus_languages,
         "shallow_concurrency": s.shallow_concurrency,
         "deep_concurrency": s.deep_concurrency,
+        "alert_max_new_per_scan": getattr(s, "alert_max_new_per_scan", 50),
         "created_at": s.created_at.isoformat() if s.created_at else None,
         "updated_at": s.updated_at.isoformat() if s.updated_at else None,
     }
@@ -2059,6 +2322,7 @@ async def update_project_settings(
         focus_languages=body.focus_languages,
         shallow_concurrency=body.shallow_concurrency,
         deep_concurrency=body.deep_concurrency,
+        alert_max_new_per_scan=body.alert_max_new_per_scan,
     )
     saved = await repo.upsert_ecosystem_project_settings(payload)
     return _settings_to_dict(saved)
@@ -2461,8 +2725,11 @@ async def index_update(
     # New style takes precedence; fall back to old style for legacy profiles
     min_stars_by_source: dict = _new_floor if _new_floor else _old_min_floor
 
-    alert_thresholds = profile_def.get("alert_thresholds", {})
-    max_new_per_scan = alert_thresholds.get("max_new_per_scan", 50)
+    # v1.6.1 Phase 2: read alert threshold from settings (migrated from scan_profile)
+    # Fall back to scan_profile.alert_thresholds for backward compat with old profiles.
+    _settings_obj = await repo.ensure_ecosystem_project_settings(project_id)
+    _profile_alert = profile_def.get("alert_thresholds", {}).get("max_new_per_scan", 50)
+    max_new_per_scan = getattr(_settings_obj, "alert_max_new_per_scan", None) or _profile_alert
 
     # Collect all fresh repo dicts from all github sources (deduplicated by repo_full_name)
     now = datetime.now(tz=timezone.utc)

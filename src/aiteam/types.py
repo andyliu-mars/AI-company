@@ -256,7 +256,7 @@ class Agent(BaseModel):
     name: str
     role: str
     system_prompt: str = ""
-    model: str = "claude-opus-4-6"
+    model: str = "claude-opus-4-7"
     status: AgentStatus = AgentStatus.WAITING
     config: dict[str, Any] = Field(default_factory=dict)
     source: str = "api"  # "api" = registered via CLAUDE.md, "hook" = auto-captured by hooks
@@ -674,6 +674,30 @@ class RepoActiveStatus(enum.StrEnum):
     ARCHIVED = "archived"
 
 
+class EcosystemShallowBatch(BaseModel):
+    """浅扫批次 — 聚合一次批量浅扫的元信息与候选仓快照。
+
+    状态流转: pending_approval → (approved → running → completed) / cancelled
+    """
+
+    id: str = Field(default_factory=_new_id)
+    project_id: str | None = None
+    triggered_by: str  # 'cron' / 'manual' / 'user'
+    trigger_reason: str | None = None
+    candidates_count: int = 0
+    candidates_snapshot_json: str | None = None  # JSON list of repo_id
+    status: str = "pending_approval"  # pending_approval / approved / running / completed / cancelled
+    approved_by: str | None = None
+    approved_at: datetime | None = None
+    completed_at: datetime | None = None
+    new_repos_count: int = 0
+    updated_repos_count: int = 0
+    metadata_changed_count: int = 0
+    failed_count: int = 0
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
 class EcosystemDeepReview(BaseModel):
     """生态仓深扫报告 — 针对单个仓的结构化分析。
 
@@ -715,6 +739,8 @@ class EcosystemDeepReview(BaseModel):
     quality_notes: str | None = None  # 审查理由
     reviewed_by: str | None = None  # 质量审查者 worker_id
     reviewed_at: datetime | None = None  # 质量审查完成时间
+    # v1.7.0: 关联浅扫批次
+    batch_id: str | None = None  # FK -> EcosystemShallowBatch.id
 
 
 class EcosystemTag(BaseModel):
@@ -779,6 +805,8 @@ class EcosystemScanRun(BaseModel):
     repos_added: int = 0
     repos_updated: int = 0
     repos_skipped: int = 0
+    # v1.6.1 Phase 2: count repos with actual metadata changes (topics/stars/desc/lang)
+    metadata_changed_count: int = 0
     errors: list[str] = Field(default_factory=list)
     notes: str = ""
     triggered_by: str = "manual"  # "manual" / "cron"
@@ -821,6 +849,8 @@ class EcosystemProjectSettings(BaseModel):
     # 决策 F：测试驱动调整的并发配置
     shallow_concurrency: int = 5
     deep_concurrency: int = 3
+    # v1.6.1 Phase 2: migrated from scan_profile.alert_thresholds.max_new_per_scan
+    alert_max_new_per_scan: int = 50
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 

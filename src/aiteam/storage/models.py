@@ -44,6 +44,7 @@ from aiteam.types import (
     EcosystemRepoTag,
     EcosystemScanRun,
     EcosystemScanStrategy,
+    EcosystemShallowBatch,
     EcosystemStageStatus,
     EcosystemStatusChange,
     EcosystemTag,
@@ -238,7 +239,7 @@ class AgentModel(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     role: Mapped[str] = mapped_column(String(100), nullable=False)
     system_prompt: Mapped[str] = mapped_column(Text, default="")
-    model: Mapped[str] = mapped_column(String(100), default="claude-opus-4-6")
+    model: Mapped[str] = mapped_column(String(100), default="claude-opus-4-7")
     status: Mapped[str] = mapped_column(String(20), default="waiting")
     config: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     source: Mapped[str] = mapped_column(String(20), default="api")
@@ -259,7 +260,7 @@ class AgentModel(Base):
             name=self.name,
             role=self.role,
             system_prompt=self.system_prompt or "",
-            model=self.model or "claude-opus-4-6",
+            model=self.model or "claude-opus-4-7",
             status=AgentStatus(self.status),
             config=self.config or {},
             source=self.source or "api",
@@ -1212,6 +1213,8 @@ class EcosystemDeepReviewModel(Base):
     quality_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # v1.7.0: 关联浅扫批次
+    batch_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
 
     def to_pydantic(self) -> EcosystemDeepReview:
         """Convert to Pydantic model."""
@@ -1252,6 +1255,7 @@ class EcosystemDeepReviewModel(Base):
             quality_notes=self.quality_notes,
             reviewed_by=self.reviewed_by,
             reviewed_at=self.reviewed_at,
+            batch_id=getattr(self, "batch_id", None),
         )
 
     @classmethod
@@ -1292,6 +1296,7 @@ class EcosystemDeepReviewModel(Base):
             quality_notes=p.quality_notes,
             reviewed_by=p.reviewed_by,
             reviewed_at=p.reviewed_at,
+            batch_id=p.batch_id,
         )
 
 
@@ -1462,6 +1467,8 @@ class EcosystemScanRunModel(Base):
     repos_added: Mapped[int] = mapped_column(Integer, default=0)
     repos_updated: Mapped[int] = mapped_column(Integer, default=0)
     repos_skipped: Mapped[int] = mapped_column(Integer, default=0)
+    # v1.6.1 Phase 2: repos with actual metadata changes (topics/stars/desc/lang)
+    metadata_changed_count: Mapped[int] = mapped_column(Integer, default=0)
     errors: Mapped[list[str]] = mapped_column(JSON, default=list)
     notes: Mapped[str] = mapped_column(Text, default="")
     triggered_by: Mapped[str] = mapped_column(String(20), default="manual")
@@ -1479,6 +1486,7 @@ class EcosystemScanRunModel(Base):
             repos_added=self.repos_added or 0,
             repos_updated=self.repos_updated or 0,
             repos_skipped=self.repos_skipped or 0,
+            metadata_changed_count=self.metadata_changed_count or 0,
             errors=self.errors if isinstance(self.errors, list) else [],
             notes=self.notes or "",
             triggered_by=self.triggered_by or "manual",
@@ -1498,6 +1506,7 @@ class EcosystemScanRunModel(Base):
             repos_added=p.repos_added,
             repos_updated=p.repos_updated,
             repos_skipped=p.repos_skipped,
+            metadata_changed_count=p.metadata_changed_count,
             errors=p.errors,
             notes=p.notes,
             triggered_by=p.triggered_by,
@@ -1597,6 +1606,8 @@ class EcosystemProjectSettingsModel(Base):
     focus_languages: Mapped[list[str]] = mapped_column(JSON, default=list)
     shallow_concurrency: Mapped[int] = mapped_column(Integer, default=5)
     deep_concurrency: Mapped[int] = mapped_column(Integer, default=3)
+    # v1.6.1 Phase 2: migrated from scan_profile.alert_thresholds.max_new_per_scan
+    alert_max_new_per_scan: Mapped[int] = mapped_column(Integer, default=50)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(tz=timezone.utc)
     )
@@ -1616,6 +1627,7 @@ class EcosystemProjectSettingsModel(Base):
             focus_languages=self.focus_languages if isinstance(self.focus_languages, list) else [],
             shallow_concurrency=self.shallow_concurrency if self.shallow_concurrency is not None else 5,
             deep_concurrency=self.deep_concurrency if self.deep_concurrency is not None else 3,
+            alert_max_new_per_scan=self.alert_max_new_per_scan if self.alert_max_new_per_scan is not None else 50,
             created_at=self.created_at,
             updated_at=self.updated_at,
         )
@@ -1633,6 +1645,7 @@ class EcosystemProjectSettingsModel(Base):
             focus_languages=p.focus_languages,
             shallow_concurrency=p.shallow_concurrency,
             deep_concurrency=p.deep_concurrency,
+            alert_max_new_per_scan=p.alert_max_new_per_scan,
             created_at=p.created_at,
             updated_at=p.updated_at,
         )
@@ -1644,7 +1657,12 @@ class EcosystemProjectSettingsModel(Base):
 
 
 class EcosystemDataSourceModel(Base):
-    """Data source configurations — one project can have multiple sources."""
+    """Data source configurations — one project can have multiple sources.
+
+    @deprecated v1.6.1 — multi-source expansion denied (GitHub-only confirmed by user).
+    Table retained to avoid data loss. Code no longer writes to this table.
+    Use EcosystemProjectSettings for configuration.
+    """
 
     __tablename__ = "ecosystem_data_sources"
 
@@ -1694,6 +1712,11 @@ class EcosystemScanProfileModel(Base):
     """Scan profile — versioned config for active/inactive/archive thresholds.
 
     Each project has at most one is_active=True row; older versions are kept for history.
+
+    @deprecated v1.6.1 — alert_thresholds.max_new_per_scan migrated to
+    EcosystemProjectSettings.alert_max_new_per_scan. Table retained to avoid data loss.
+    MCP tools ecosystem_scan_profile_update and ecosystem_data_source_create now return
+    deprecated stubs. Code reads this table only for backward-compat fallback in index_update.
     """
 
     __tablename__ = "ecosystem_scan_profiles"
@@ -1915,4 +1938,80 @@ class EcosystemRepoEventModel(Base):
             to_status=ev.to_status,
             reason=ev.reason,
             triggered_at=ev.triggered_at,
+        )
+
+
+# ============================================================
+# v1.7.0: Shallow batch management table
+# ============================================================
+
+
+class EcosystemShallowBatchModel(Base):
+    """浅扫批次 — 聚合一次批量浅扫的元信息与候选仓快照。
+
+    一个批次对应一轮候选仓的发现与分发流程，支持人工审批门控。
+    """
+
+    __tablename__ = "ecosystem_shallow_batches"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    triggered_by: Mapped[str] = mapped_column(String(50))  # 'cron' / 'manual' / 'user'
+    trigger_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    candidates_count: Mapped[int] = mapped_column(Integer, default=0)
+    candidates_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON list of repo_id
+    status: Mapped[str] = mapped_column(String(20), default="pending_approval")
+    approved_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    new_repos_count: Mapped[int] = mapped_column(Integer, default=0)
+    updated_repos_count: Mapped[int] = mapped_column(Integer, default=0)
+    metadata_changed_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=timezone.utc)
+    )
+
+    def to_pydantic(self) -> EcosystemShallowBatch:
+        return EcosystemShallowBatch(
+            id=self.id,
+            project_id=self.project_id,
+            triggered_by=self.triggered_by,
+            trigger_reason=self.trigger_reason,
+            candidates_count=self.candidates_count or 0,
+            candidates_snapshot_json=self.candidates_snapshot_json,
+            status=self.status or "pending_approval",
+            approved_by=self.approved_by,
+            approved_at=self.approved_at,
+            completed_at=self.completed_at,
+            new_repos_count=self.new_repos_count or 0,
+            updated_repos_count=self.updated_repos_count or 0,
+            metadata_changed_count=self.metadata_changed_count or 0,
+            failed_count=self.failed_count or 0,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+        )
+
+    @classmethod
+    def from_pydantic(cls, b: EcosystemShallowBatch) -> "EcosystemShallowBatchModel":
+        return cls(
+            id=b.id,
+            project_id=b.project_id,
+            triggered_by=b.triggered_by,
+            trigger_reason=b.trigger_reason,
+            candidates_count=b.candidates_count,
+            candidates_snapshot_json=b.candidates_snapshot_json,
+            status=b.status,
+            approved_by=b.approved_by,
+            approved_at=b.approved_at,
+            completed_at=b.completed_at,
+            new_repos_count=b.new_repos_count,
+            updated_repos_count=b.updated_repos_count,
+            metadata_changed_count=b.metadata_changed_count,
+            failed_count=b.failed_count,
+            created_at=b.created_at,
+            updated_at=b.updated_at,
         )

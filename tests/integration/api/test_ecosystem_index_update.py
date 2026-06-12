@@ -218,7 +218,7 @@ async def test_index_update_alert_threshold_new(
     repo: StorageRepository,
 ) -> None:
     """When new repos exceed max_new_per_scan threshold, return alerted=True."""
-    # Set a very low threshold via custom profile
+    # v1.6.1 Phase 2: set threshold via settings (migrated from scan_profile)
     await client.post(
         "/api/ecosystem/data_sources",
         json={"kind": "github", "name": "gh", "config": {"queries": ["topic:mcp"]}},
@@ -233,11 +233,14 @@ async def test_index_update_alert_threshold_new(
                     "active_top_n_per_source": 200,
                     "min_popularity_floor": {"github": 100},
                 },
-                "inactive_signals": {"no_activity_days": 180},
-                "archive_signals": {"no_activity_days": 730, "source_archived": False},
-                "alert_thresholds": {"max_new_per_scan": 1, "max_archived_per_scan": 30},
             }
         },
+        headers={"X-Project-Id": PROJECT_ID},
+    )
+    # Set alert threshold via settings (new home for alert_max_new_per_scan)
+    await client.put(
+        f"/api/ecosystem/projects/{PROJECT_ID}/settings",
+        json={"alert_max_new_per_scan": 1},
         headers={"X-Project-Id": PROJECT_ID},
     )
 

@@ -288,6 +288,8 @@ export interface EcosystemScanRun {
   repos_added: number;
   repos_updated: number;
   repos_skipped?: number;
+  /** v1.6.1 Phase 2: repos with actual metadata changes (topics/stars/desc/lang) */
+  metadata_changed_count?: number;
   errors?: string[];
   triggered_by?: string;
   notes: string | null;
@@ -305,6 +307,7 @@ interface ScanRunsApiResponse {
     repos_added: number;
     repos_updated: number;
     repos_skipped?: number;
+    metadata_changed_count?: number;
     errors?: string[];
     triggered_by?: string;
     notes: string | null;
@@ -523,6 +526,8 @@ export interface EcosystemProjectSettings {
   focus_languages: string[];
   shallow_concurrency: number;
   deep_concurrency: number;
+  /** v1.6.1 Phase 2: 每次扫描最多允许新增的仓数（超过触发告警），从 scan_profile 迁移 */
+  alert_max_new_per_scan: number;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -708,5 +713,140 @@ export function useScanHistory(repoId: string | null, limit = 50) {
       apiFetch<ScanHistoryResponse>(`/api/ecosystem/repos/${repoId}/scan_history?limit=${limit}`),
     enabled: !!repoId,
     staleTime: 30_000,
+  });
+}
+
+// ============================================================
+// v1.7.0: 浅扫批次管理
+// ============================================================
+
+/** 浅扫批次 — 与后端 EcosystemShallowBatch 对齐 */
+export interface ShallowBatch {
+  id: string;
+  project_id: string | null;
+  triggered_by: string;
+  trigger_reason: string | null;
+  candidates_count: number;
+  status: string; // pending_approval / approved / running / completed / cancelled
+  approved_by: string | null;
+  approved_at: string | null;
+  completed_at: string | null;
+  new_repos_count: number;
+  updated_repos_count: number;
+  metadata_changed_count: number;
+  failed_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 批次候选仓条目 */
+export interface ShallowBatchItem {
+  repo_id: string;
+  repo_full_name: string;
+  stars: number;
+  stage_status: string;
+  shallow_summary_excerpt: string;
+  last_commit_at: string | null;
+}
+
+export interface ShallowBatchesResponse {
+  batches: ShallowBatch[];
+  total: number;
+}
+
+export interface ShallowBatchResponse {
+  batch: ShallowBatch;
+}
+
+export interface ShallowBatchItemsResponse {
+  batch_id: string;
+  items: ShallowBatchItem[];
+  total: number;
+}
+
+/** GET /api/ecosystem/shallow_batches */
+export function useShallowBatches(limit = 50) {
+  return useQuery({
+    queryKey: ['ecosystem', 'shallow-batches', limit],
+    queryFn: () =>
+      apiFetch<ShallowBatchesResponse>(`/api/ecosystem/shallow_batches?limit=${limit}`),
+    staleTime: 10_000,
+  });
+}
+
+/** GET /api/ecosystem/shallow_batches/{batchId} */
+export function useShallowBatch(batchId: string | null) {
+  return useQuery({
+    queryKey: ['ecosystem', 'shallow-batch', batchId],
+    queryFn: () =>
+      apiFetch<ShallowBatchResponse>(`/api/ecosystem/shallow_batches/${batchId}`),
+    enabled: !!batchId,
+    staleTime: 10_000,
+  });
+}
+
+/** GET /api/ecosystem/shallow_batches/{batchId}/items */
+export function useShallowBatchItems(batchId: string | null) {
+  return useQuery({
+    queryKey: ['ecosystem', 'shallow-batch-items', batchId],
+    queryFn: () =>
+      apiFetch<ShallowBatchItemsResponse>(`/api/ecosystem/shallow_batches/${batchId}/items`),
+    enabled: !!batchId,
+    staleTime: 15_000,
+  });
+}
+
+/** POST /api/ecosystem/shallow_batches */
+export function useCreateShallowBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { triggered_by: string; trigger_reason?: string }) =>
+      apiFetch<{ success: boolean; batch_id: string; candidates_count: number; status: string; message: string }>(
+        `/api/ecosystem/shallow_batches`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ecosystem', 'shallow-batches'] });
+    },
+  });
+}
+
+/** POST /api/ecosystem/shallow_batches/{batchId}/approve */
+export function useApproveBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ batchId, approvedBy }: { batchId: string; approvedBy: string }) =>
+      apiFetch<{ success: boolean; batch_id: string; status: string; dr_created: number; message: string }>(
+        `/api/ecosystem/shallow_batches/${batchId}/approve`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approved_by: approvedBy }),
+        },
+      ),
+    onSuccess: (_data, { batchId }) => {
+      qc.invalidateQueries({ queryKey: ['ecosystem', 'shallow-batches'] });
+      qc.invalidateQueries({ queryKey: ['ecosystem', 'shallow-batch', batchId] });
+    },
+  });
+}
+
+/** POST /api/ecosystem/shallow_batches/{batchId}/cancel */
+export function useCancelBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (batchId: string) =>
+      apiFetch<{ success: boolean; batch_id: string; status: string; message: string }>(
+        `/api/ecosystem/shallow_batches/${batchId}/cancel`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+      ),
+    onSuccess: (_data, batchId) => {
+      qc.invalidateQueries({ queryKey: ['ecosystem', 'shallow-batches'] });
+      qc.invalidateQueries({ queryKey: ['ecosystem', 'shallow-batch', batchId] });
+    },
   });
 }

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, Boxes, ChevronLeft, ChevronRight, Search as SearchIcon } from 'lucide-react';
+import { AlertCircle, Boxes, ChevronLeft, ChevronRight, Search as SearchIcon, Layers } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useEcosystemProfiles } from '@/api/ecosystem';
@@ -102,6 +102,16 @@ export function EcosystemListPage() {
               )}
             </p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            nativeButton={false}
+            render={<Link to="/ecosystem/batches" />}
+          >
+            <Layers className="mr-1 h-4 w-4" aria-hidden="true" />
+            浅扫批次
+          </Button>
           <Button
             variant="outline"
             size="sm"

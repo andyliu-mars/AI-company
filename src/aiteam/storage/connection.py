@@ -172,6 +172,12 @@ COLUMNS_TO_ENSURE: list[tuple[str, str, str]] = [
     ("ecosystem_repo_events", "from_status", "VARCHAR(20)"),
     ("ecosystem_repo_events", "to_status", "VARCHAR(20)"),
     ("ecosystem_repo_events", "reason", "TEXT"),
+    # v1.7.0: shallow batch management
+    ("ecosystem_deep_reviews", "batch_id", "VARCHAR(36)"),
+    # v1.6.1 Phase 2: alert threshold migrated from scan_profile to settings
+    ("ecosystem_project_settings", "alert_max_new_per_scan", "INTEGER DEFAULT 50"),
+    # v1.6.1 Phase 2: scan run real metadata change counter
+    ("ecosystem_scan_runs", "metadata_changed_count", "INTEGER DEFAULT 0"),
 ]
 
 

@@ -31,6 +31,7 @@ from aiteam.storage.models import (
     EcosystemRepoTagModel,
     EcosystemScanProfileModel,
     EcosystemScanRunModel,
+    EcosystemShallowBatchModel,
     EcosystemStatusChangeModel,
     EcosystemTagModel,
     EventModel,
@@ -66,6 +67,7 @@ from aiteam.types import (
     EcosystemRepoStatusSnapshot,
     EcosystemRepoTag,
     EcosystemScanRun,
+    EcosystemShallowBatch,
     EcosystemStageStatus,
     EcosystemStatusChange,
     EcosystemTag,
@@ -458,7 +460,7 @@ class StorageRepository:
             name=name,
             role=role,
             system_prompt=str(kwargs.get("system_prompt", "")),
-            model=str(kwargs.get("model", "claude-opus-4-6")),
+            model=str(kwargs.get("model", "claude-opus-4-7")),
             config=kwargs.get("config", {}),  # type: ignore[arg-type]
             source=str(kwargs.get("source", "api")),
             session_id=kwargs.get("session_id"),  # type: ignore[arg-type]
@@ -4008,6 +4010,159 @@ class StorageRepository:
                 top_n=100,
             )
         return await self.upsert_ecosystem_project_settings(payload)
+
+    # ================================================================
+    # Ecosystem shallow batch management (v1.7.0)
+    # ================================================================
+
+    async def create_shallow_batch(
+        self,
+        batch: EcosystemShallowBatch,
+    ) -> EcosystemShallowBatch:
+        """创建新浅扫批次。"""
+        async with get_session(self._db_url) as session:
+            session.add(EcosystemShallowBatchModel.from_pydantic(batch))
+        return batch
+
+    async def get_shallow_batch(
+        self,
+        batch_id: str,
+        project_id: str | None = None,
+    ) -> EcosystemShallowBatch | None:
+        """按 ID 查询浅扫批次。"""
+        effective_pid = self._effective_project_id(project_id)
+        async with get_session(self._db_url) as session:
+            stmt = select(EcosystemShallowBatchModel).where(
+                EcosystemShallowBatchModel.id == batch_id
+            )
+            if effective_pid is not None:
+                stmt = stmt.where(EcosystemShallowBatchModel.project_id == effective_pid)
+            result = await session.execute(stmt)
+            row = result.scalar_one_or_none()
+            return row.to_pydantic() if row else None
+
+    async def list_shallow_batches(
+        self,
+        project_id: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[EcosystemShallowBatch], int]:
+        """列出浅扫批次（按 created_at 倒序）。返回 (batches, total)。"""
+        effective_pid = self._effective_project_id(project_id)
+        async with get_session(self._db_url) as session:
+            base = select(EcosystemShallowBatchModel)
+            count_q = select(func.count()).select_from(EcosystemShallowBatchModel)
+            if effective_pid is not None:
+                base = base.where(EcosystemShallowBatchModel.project_id == effective_pid)
+                count_q = count_q.where(EcosystemShallowBatchModel.project_id == effective_pid)
+            total_result = await session.execute(count_q)
+            total = total_result.scalar_one() or 0
+            stmt = base.order_by(EcosystemShallowBatchModel.created_at.desc()).limit(limit).offset(offset)
+            result = await session.execute(stmt)
+            rows = result.scalars().all()
+            return [r.to_pydantic() for r in rows], total
+
+    async def update_shallow_batch(
+        self,
+        batch_id: str,
+        project_id: str | None = None,
+        **kwargs: Any,
+    ) -> EcosystemShallowBatch | None:
+        """更新浅扫批次字段（通过 kwargs 传入字段名/值）。"""
+        effective_pid = self._effective_project_id(project_id)
+        now = datetime.now(tz=timezone.utc)
+        async with get_session(self._db_url) as session:
+            stmt = select(EcosystemShallowBatchModel).where(
+                EcosystemShallowBatchModel.id == batch_id
+            )
+            if effective_pid is not None:
+                stmt = stmt.where(EcosystemShallowBatchModel.project_id == effective_pid)
+            result = await session.execute(stmt)
+            row = result.scalar_one_or_none()
+            if row is None:
+                return None
+            for key, val in kwargs.items():
+                if hasattr(row, key):
+                    setattr(row, key, val)
+            row.updated_at = now
+            await session.flush()
+            return row.to_pydantic()
+
+    async def get_batch_items(
+        self,
+        batch_id: str,
+        project_id: str | None = None,
+    ) -> list[dict]:
+        """获取批次内候选仓清单（含 repo 基础信息）。
+
+        返回格式: [{repo_id, repo_full_name, stars, stage_status, shallow_summary_excerpt, last_commit_at}, ...]
+        """
+        import json
+
+        effective_pid = self._effective_project_id(project_id)
+        async with get_session(self._db_url) as session:
+            # 1. 拉批次行取 candidates_snapshot_json
+            batch_stmt = select(EcosystemShallowBatchModel).where(
+                EcosystemShallowBatchModel.id == batch_id
+            )
+            if effective_pid is not None:
+                batch_stmt = batch_stmt.where(
+                    EcosystemShallowBatchModel.project_id == effective_pid
+                )
+            batch_result = await session.execute(batch_stmt)
+            batch_row = batch_result.scalar_one_or_none()
+            if batch_row is None:
+                return []
+
+            # 2. 解析候选快照
+            repo_ids: list[str] = []
+            if batch_row.candidates_snapshot_json:
+                try:
+                    repo_ids = json.loads(batch_row.candidates_snapshot_json)
+                except Exception:
+                    repo_ids = []
+
+            if not repo_ids:
+                return []
+
+            # 3. 批量拉 repo profile 基础字段
+            profile_stmt = select(EcosystemRepoProfileModel).where(
+                EcosystemRepoProfileModel.id.in_(repo_ids)
+            )
+            if effective_pid is not None:
+                profile_stmt = profile_stmt.where(
+                    EcosystemRepoProfileModel.project_id == effective_pid
+                )
+            profile_result = await session.execute(profile_stmt)
+            profiles = {r.id: r for r in profile_result.scalars().all()}
+
+            # 4. 拉关联 DR 的 stage_status（最新一条）
+            dr_stmt = (
+                select(EcosystemDeepReviewModel.repo_id, EcosystemDeepReviewModel.stage_status)
+                .where(EcosystemDeepReviewModel.repo_id.in_(repo_ids))
+                .where(EcosystemDeepReviewModel.batch_id == batch_id)
+            )
+            dr_result = await session.execute(dr_stmt)
+            dr_map = {row[0]: row[1] for row in dr_result.all()}
+
+            items = []
+            for repo_id in repo_ids:
+                profile = profiles.get(repo_id)
+                if profile is None:
+                    items.append({"repo_id": repo_id, "repo_full_name": repo_id, "stars": 0,
+                                  "stage_status": "unknown", "shallow_summary_excerpt": "", "last_commit_at": None})
+                    continue
+                summary = profile.shallow_summary or ""
+                items.append({
+                    "repo_id": profile.id,
+                    "repo_full_name": profile.repo_full_name,
+                    "stars": profile.stars or 0,
+                    "stage_status": dr_map.get(repo_id, "queued"),
+                    "shallow_summary_excerpt": summary[:200] if summary else "",
+                    "last_commit_at": profile.last_commit_at.isoformat() if profile.last_commit_at else None,
+                })
+            return items
+
 
     # ================================================================
     # v1.6.0 P0: DataSource CRUD

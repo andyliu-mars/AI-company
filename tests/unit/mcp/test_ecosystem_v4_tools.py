@@ -132,59 +132,35 @@ class TestQuickSetup:
 
 
 class TestDataSourceCreate:
-    def test_posts_to_data_sources_with_kind_name_config(self) -> None:
-        fake = {
-            "success": True,
-            "data_source": {
-                "id": "ds-1",
-                "project_id": "p-1",
-                "kind": "github",
-                "name": "github default",
-                "config": {"queries": ["claude-code"]},
-                "enabled": True,
-                "version": 1,
-                "created_at": "2026-05-11T00:00:00+00:00",
-            },
-        }
-        with patch.object(eco, "_api_call", return_value=fake) as mock_api:
-            result = _data_source_create(
-                kind="github",
-                name="github default",
-                config={"queries": ["claude-code"]},
-            )
+    # v1.6.1 Phase 2: ecosystem_data_source_create is a deprecated stub (multi-source denied).
+    # All calls return {success: True, deprecated: True} without hitting the API.
 
-        assert mock_api.call_args[0][0] == "POST"
-        assert mock_api.call_args[0][1] == "/api/ecosystem/data_sources"
-        body = mock_api.call_args[0][2]
-        assert body == {
-            "kind": "github",
-            "name": "github default",
-            "config": {"queries": ["claude-code"]},
-        }
+    def test_posts_to_data_sources_with_kind_name_config(self) -> None:
+        result = _data_source_create(
+            kind="github",
+            name="github default",
+            config={"queries": ["claude-code"]},
+        )
         assert result["success"] is True
-        assert result["data_source"]["id"] == "ds-1"
+        assert result["deprecated"] is True
+        assert "DEPRECATED" in result["message"]
 
     def test_config_defaults_to_empty_dict(self) -> None:
-        fake = {"success": True, "data_source": {"id": "ds-1", "kind": "npm"}}
-        with patch.object(eco, "_api_call", return_value=fake) as mock_api:
-            _data_source_create(kind="npm", name="npm registry")
-        body = mock_api.call_args[0][2]
-        assert body["config"] == {}
+        result = _data_source_create(kind="npm", name="npm registry")
+        assert result["success"] is True
+        assert result["deprecated"] is True
 
     def test_api_unavailable_returns_error_dict(self) -> None:
-        with patch.object(eco, "_api_call", return_value=None):
-            result = _data_source_create(kind="github", name="x")
-        assert result == {"success": False, "error": "api_unavailable"}
+        # Stub never fails — always returns deprecated notice
+        result = _data_source_create(kind="github", name="x")
+        assert result["success"] is True
+        assert result["deprecated"] is True
 
     def test_invalid_kind_passes_through_422(self) -> None:
-        failure = {
-            "success": False,
-            "error": "HTTP 422: Unprocessable Entity",
-            "detail": "Invalid kind 'bogus'",
-        }
-        with patch.object(eco, "_api_call", return_value=failure):
-            result = _data_source_create(kind="bogus", name="x")
-        assert result["success"] is False
+        # Stub never validates kind — always returns deprecated notice
+        result = _data_source_create(kind="bogus", name="x")
+        assert result["success"] is True
+        assert result["deprecated"] is True
 
 
 # ============================================================
@@ -193,38 +169,25 @@ class TestDataSourceCreate:
 
 
 class TestScanProfileUpdate:
+    # v1.6.1 Phase 2: ecosystem_scan_profile_update is a deprecated stub.
+    # alert_thresholds.max_new_per_scan migrated to settings.alert_max_new_per_scan.
+    # All calls return {success: True, deprecated: True} without hitting the API.
+
     def test_puts_full_profile_to_scan_profile(self) -> None:
         profile = {
             "min_popularity_floor": {"github": 50, "huggingface": 100},
             "language_allowlist": ["Python", "TypeScript"],
         }
-        fake = {
-            "success": True,
-            "scan_profile": {
-                "id": "sp-2",
-                "project_id": "p-1",
-                "version": 2,
-                "profile": profile,
-                "is_active": True,
-                "created_at": "2026-05-11T00:00:00+00:00",
-            },
-        }
-        with patch.object(eco, "_api_call", return_value=fake) as mock_api:
-            result = _scan_profile_update(profile=profile)
-
-        assert mock_api.call_args[0][0] == "PUT"
-        assert mock_api.call_args[0][1] == "/api/ecosystem/scan_profile"
-        body = mock_api.call_args[0][2]
-        assert body == {"profile": profile}
-
+        result = _scan_profile_update(profile=profile)
         assert result["success"] is True
-        assert result["scan_profile"]["version"] == 2
-        assert result["scan_profile"]["profile"] == profile
+        assert result["deprecated"] is True
+        assert "DEPRECATED" in result["message"]
 
     def test_api_unavailable_returns_error_dict(self) -> None:
-        with patch.object(eco, "_api_call", return_value=None):
-            result = _scan_profile_update(profile={})
-        assert result == {"success": False, "error": "api_unavailable"}
+        # Stub never fails — always returns deprecated notice
+        result = _scan_profile_update(profile={})
+        assert result["success"] is True
+        assert result["deprecated"] is True
 
 
 # ============================================================
@@ -348,14 +311,14 @@ class TestProjectHeaderPropagation:
         self._assert_called_with_headers(mock_api)
 
     def test_data_source_create_passes_headers(self) -> None:
-        with patch.object(eco, "_api_call", return_value={"success": True}) as mock_api:
-            _data_source_create(kind="github", name="x")
-        self._assert_called_with_headers(mock_api)
+        # v1.6.1 Phase 2: deprecated stub — does not call _api_call, returns immediately.
+        result = _data_source_create(kind="github", name="x")
+        assert result["deprecated"] is True
 
     def test_scan_profile_update_passes_headers(self) -> None:
-        with patch.object(eco, "_api_call", return_value={"success": True}) as mock_api:
-            _scan_profile_update(profile={})
-        self._assert_called_with_headers(mock_api)
+        # v1.6.1 Phase 2: deprecated stub — does not call _api_call, returns immediately.
+        result = _scan_profile_update(profile={})
+        assert result["deprecated"] is True
 
     def test_index_update_passes_headers(self) -> None:
         with patch.object(eco, "_api_call", return_value={"success": True}) as mock_api:

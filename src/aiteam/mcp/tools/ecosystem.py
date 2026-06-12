@@ -1593,12 +1593,16 @@ def register(mcp: Any) -> None:
         """Claim the next queued repo for shallow scanning (stage_status='queued').
 
         Atomic: only one worker gets each row; others get {"claimed": false}.
+        v1.7.0: also returns repo_full_name, topics, description, owner, stars, last_commit_at
+        so workers can skip a separate ecosystem_repo_get call.
 
         Args:
             worker_id: Unique worker identifier string.
 
         Returns:
-            {"claimed": true, "dr_id": ..., "repo_id": ..., "claimed_by": ..., "claimed_at": ...}
+            {"claimed": true, "dr_id": ..., "repo_id": ..., "claimed_by": ..., "claimed_at": ...,
+             "repo_full_name": ..., "topics": [...], "description": ..., "owner": ...,
+             "stars": ..., "last_commit_at": ...}
             or {"claimed": false} when queue is empty.
         """
         result = _api_call(
@@ -1775,77 +1779,57 @@ def register(mcp: Any) -> None:
         name: str,
         config: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Create a single DataSource configuration for the current project.
+        """[DEPRECATED v1.6.1: 多源已否决（用户确认仅 GitHub 单源）。data_source 表已废弃。
+        此工具仅向后兼容保留，所有写入被忽略。
+        请改用 ecosystem 设置 API/UI（PUT /api/ecosystem/projects/{id}/settings）修改 settings 表。]
 
-        Maps to ``POST /api/ecosystem/data_sources``. Use this when you need
-        fine-grained control over a specific source (e.g. a curated query list
-        or rate-limit override) instead of the bulk ``ecosystem_quick_setup``.
+        Create a single DataSource configuration for the current project.
 
         Args:
             kind: DataSourceKind enum value — one of github / huggingface /
                 npm / pypi / hackernews / producthunt / arxiv / custom.
-                Backend returns 422 on unknown kinds with the valid list.
             name: Friendly display name shown in the dashboard.
-            config: Source-specific config dict, e.g.
-                ``{'queries': ['mcp-server'], 'filters': {...},
-                'rate_limit': {...}}``. Empty dict allowed.
+            config: Source-specific config dict. Empty dict allowed.
 
         Returns:
-            ``{success: True, data_source: {id, project_id, kind, name, config,
-              enabled, version, created_at}}``. ``success`` semantics: True =
-            row was created; False = API rejected the call.
-            On failure: ``{success: False, error, detail}``.
+            ``{success: True, deprecated: True, message: ...}`` — writes are ignored.
         """
-        payload: dict[str, Any] = {
-            "kind": kind,
-            "name": name,
-            "config": config or {},
+        return {
+            "success": True,
+            "deprecated": True,
+            "message": (
+                "[DEPRECATED v1.6.1] ecosystem_data_source_create is a no-op. "
+                "Multi-source expansion was denied (GitHub-only confirmed). "
+                "Use PUT /api/ecosystem/projects/{project_id}/settings to configure scanning."
+            ),
         }
-        result = _api_call(
-            "POST",
-            "/api/ecosystem/data_sources",
-            payload,
-            extra_headers=_project_headers(),
-        )
-        if not result:
-            return {"success": False, "error": "api_unavailable"}
-        return result
 
     @mcp.tool()
     def ecosystem_scan_profile_update(
         profile: dict[str, Any],
     ) -> dict[str, Any]:
-        """Create a new ScanProfile version (previous version is deactivated).
+        """[DEPRECATED v1.6.1: scan_profile 表已废弃。alert_thresholds.max_new_per_scan
+        已迁移至 settings.alert_max_new_per_scan。
+        此工具仅向后兼容保留，所有写入被忽略。
+        请改用 ecosystem 设置 API/UI（PUT /api/ecosystem/projects/{id}/settings）修改 settings 表。]
 
-        Maps to ``PUT /api/ecosystem/scan_profile``. The full profile dict is
-        persisted as a new version; the previous active row's ``is_active`` is
-        flipped to False (rollback is possible via history). Pass the complete
-        profile, not a partial patch.
+        Create a new ScanProfile version (previous version is deactivated).
 
         Args:
-            profile: Complete ScanProfile JSON. Typical keys include
-                ``min_popularity_floor`` (per-source thresholds), language
-                allow/deny lists, archive cutoffs, and per-source query
-                overrides. Refer to the default profile shape returned by
-                ``GET /api/ecosystem/scan_profile``.
+            profile: Complete ScanProfile JSON (ignored — writes are no-op).
 
         Returns:
-            ``{success: True, scan_profile: {id, project_id, version, profile,
-              is_active, created_at}}``. ``success`` semantics: True = new
-            version persisted (previous version's ``is_active`` flipped to
-            False).
-            On failure: ``{success: False, error, detail}``.
+            ``{success: True, deprecated: True, message: ...}`` — writes are ignored.
         """
-        payload = {"profile": profile}
-        result = _api_call(
-            "PUT",
-            "/api/ecosystem/scan_profile",
-            payload,
-            extra_headers=_project_headers(),
-        )
-        if not result:
-            return {"success": False, "error": "api_unavailable"}
-        return result
+        return {
+            "success": True,
+            "deprecated": True,
+            "message": (
+                "[DEPRECATED v1.6.1] ecosystem_scan_profile_update is a no-op. "
+                "scan_profile table is superseded by settings. "
+                "Use alert_max_new_per_scan in PUT /api/ecosystem/projects/{project_id}/settings."
+            ),
+        }
 
     @mcp.tool()
     def ecosystem_index_update(dry_run: bool = True) -> dict[str, Any]:

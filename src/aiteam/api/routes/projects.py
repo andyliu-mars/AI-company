@@ -118,13 +118,16 @@ async def project_summary(
     # Live CC session: a leader agent bound to this project whose last_active_at
     # is fresh (hooks refresh it on every tool call) means someone is working in
     # this project right now, even with no running task on the wall.
-    from datetime import datetime, timedelta, timezone
+    # Clock convention: agent timestamps are stored as NAIVE LOCAL time
+    # (hook_translator/StateReaper both use datetime.now()); compare in the same
+    # clock — treating them as UTC put liveness off by the UTC offset (4h observed).
+    from datetime import datetime, timedelta
 
     live_session = False
     last_activity_at: str | None = None
     try:
         leaders = await repo.find_agents_by_role("leader")
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now()
         freshest = None
         for leader in leaders:
             if getattr(leader, "project_id", None) != project_id:
@@ -132,11 +135,13 @@ async def project_summary(
             ts = getattr(leader, "last_active_at", None)
             if ts is None:
                 continue
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
+            if ts.tzinfo is not None:
+                ts = ts.astimezone().replace(tzinfo=None)
             if freshest is None or ts > freshest:
                 freshest = ts
         if freshest is not None:
+            # Naive local, no timezone suffix — JS Date() parses it as local,
+            # which matches how it was written.
             last_activity_at = freshest.isoformat()
             live_session = (now - freshest) < timedelta(minutes=15)
     except Exception:  # noqa: BLE001 — summary must not fail on liveness probe

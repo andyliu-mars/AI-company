@@ -101,12 +101,12 @@ async def test_add_agent(manager: TeamManager) -> None:
         name="dev-1",
         role="后端开发",
         system_prompt="你是一位后端开发工程师。",
-        model="claude-opus-4-6",
+        model="claude-opus-4-7",
     )
     assert agent.name == "dev-1"
     assert agent.role == "后端开发"
     assert agent.system_prompt == "你是一位后端开发工程师。"
-    assert agent.model == "claude-opus-4-6"
+    assert agent.model == "claude-opus-4-7"
 
 
 async def test_list_agents(manager: TeamManager) -> None:

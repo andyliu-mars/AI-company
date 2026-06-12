@@ -63,7 +63,7 @@ class AgentCreate(BaseModel):
     name: str
     role: str
     system_prompt: str = ""
-    model: str = "claude-opus-4-6"
+    model: str = "claude-opus-4-7"
 
 
 class TaskCreate(BaseModel):

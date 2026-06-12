@@ -17,7 +17,7 @@ def compile_graph(
     team: Team,
     agents: list[Agent],
     memory_store: Any | None = None,
-    llm_model: str = "claude-opus-4-6",
+    llm_model: str = "claude-opus-4-7",
 ) -> Any:
     """Compile the corresponding StateGraph based on team orchestration mode.
 

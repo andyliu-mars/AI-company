@@ -75,3 +75,8 @@ pip/
 # Performance benchmark outputs (not for repo)
 tmp/
 bench-*.json
+
+# SQLite artifacts (runtime DB lives in ~/.claude/data)
+aiteam.db
+*.db-shm
+*.db-wal

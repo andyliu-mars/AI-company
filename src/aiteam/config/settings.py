@@ -49,7 +49,7 @@ class InfrastructureConfig(BaseModel):
 class DefaultsConfig(BaseModel):
     """Default configuration."""
 
-    model: str = "claude-opus-4-6"
+    model: str = "claude-opus-4-7"
     max_context_ratio: float = Field(default=0.8, ge=0.1, le=1.0)
 
 
@@ -161,7 +161,7 @@ project:
   language: "zh"
 
 defaults:
-  model: "claude-opus-4-6"
+  model: "claude-opus-4-7"
   max_context_ratio: 0.8
 
 infrastructure:

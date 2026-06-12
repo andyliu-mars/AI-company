@@ -140,7 +140,7 @@ async def test_reducer_node() -> None:
         },
     }
 
-    config = {"configurable": {"llm_model": "claude-opus-4-6"}}
+    config = {"configurable": {"llm_model": "claude-opus-4-7"}}
 
     with patch("aiteam.orchestrator.nodes.reducer_node.ChatAnthropic") as mock_llm_cls:
         mock_llm = AsyncMock()

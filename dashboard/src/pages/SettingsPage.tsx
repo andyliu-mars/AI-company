@@ -35,7 +35,6 @@ export function SettingsPage() {
   // 通用设置
   const [projectName, setProjectName] = useState('AI Team OS');
   const [projectDesc, setProjectDesc] = useState(t.settings.defaultProjectDesc);
-  const [defaultModel, setDefaultModel] = useState('claude-sonnet-4-6');
   const [darkMode, setDarkMode] = useState(false);
 
   const langCtx = useContext(LanguageContext);
@@ -257,20 +256,6 @@ export function SettingsPage() {
                   placeholder={t.settings.projectDescPlaceholder}
                   rows={3}
                 />
-              </div>
-
-              <div className="grid gap-2">
-                <Label>{t.settings.defaultModel}</Label>
-                <Select value={defaultModel} onValueChange={(v) => v && setDefaultModel(v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
-                    <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="grid gap-2">
@@ -551,9 +536,9 @@ export function SettingsPage() {
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
-                                    <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
-                                    <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5</SelectItem>
+                                    <SelectItem value="claude-opus-4-7">Claude Opus 4.7（最强，复杂推理）</SelectItem>
+                                    <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6（均衡，默认推荐）</SelectItem>
+                                    <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5（快/经济）</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
@@ -635,9 +620,9 @@ export function SettingsPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
-                            <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
-                            <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5</SelectItem>
+                            <SelectItem value="claude-opus-4-7">Claude Opus 4.7（最强，复杂推理）</SelectItem>
+                            <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6（均衡，默认推荐）</SelectItem>
+                            <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5（快/经济）</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

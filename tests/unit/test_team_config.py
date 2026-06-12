@@ -82,7 +82,7 @@ class TestPutDefaults:
                 {
                     "name": "researcher",
                     "role": "研究员",
-                    "model": "claude-opus-4-6",
+                    "model": "claude-opus-4-7",
                     "enabled": True,
                 }
             ],
@@ -107,7 +107,7 @@ class TestPostMember:
         new_member = {
             "name": "researcher",
             "role": "研究员",
-            "model": "claude-opus-4-6",
+            "model": "claude-opus-4-7",
             "enabled": True,
         }
         resp = config_client.post("/api/config/team-defaults/members", json=new_member)
@@ -166,10 +166,10 @@ class TestPatchMember:
     def test_update_model(self, config_client):
         resp = config_client.patch(
             "/api/config/team-defaults/members/bug-fixer",
-            json={"model": "claude-opus-4-6"},
+            json={"model": "claude-opus-4-7"},
         )
         assert resp.status_code == 200
-        assert resp.json()["data"]["model"] == "claude-opus-4-6"
+        assert resp.json()["data"]["model"] == "claude-opus-4-7"
 
     def test_update_role(self, config_client):
         resp = config_client.patch(

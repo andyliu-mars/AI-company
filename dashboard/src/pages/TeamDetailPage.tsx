@@ -130,7 +130,7 @@ export function TeamDetailPage() {
   const [agentName, setAgentName] = useState('');
   const [agentRole, setAgentRole] = useState('');
   const [agentPrompt, setAgentPrompt] = useState('');
-  const [agentModel, setAgentModel] = useState('gpt-4');
+  const [agentModel, setAgentModel] = useState('claude-sonnet-4-6');
 
   // Delete Agent Dialog
   const [deleteAgentOpen, setDeleteAgentOpen] = useState(false);
@@ -562,11 +562,9 @@ export function TeamDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gpt-4">GPT-4</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                    <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                    <SelectItem value="claude-sonnet-4-20250514">Claude Sonnet</SelectItem>
-                    <SelectItem value="claude-haiku-4-5-20251001">Claude Haiku</SelectItem>
+                    <SelectItem value="claude-opus-4-7">Claude Opus 4.7（最强，复杂推理）</SelectItem>
+                    <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6（均衡，默认推荐）</SelectItem>
+                    <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5（快/经济）</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

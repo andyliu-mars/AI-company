@@ -25,7 +25,7 @@ async def reducer_node(state: dict, config: RunnableConfig) -> dict:
         State update dict containing final_result and messages.
     """
     configurable = config.get("configurable", {})
-    llm_model = configurable.get("llm_model", "claude-opus-4-6")
+    llm_model = configurable.get("llm_model", "claude-opus-4-7")
 
     task = state.get("current_task", "")
     agent_outputs = state.get("agent_outputs", {})

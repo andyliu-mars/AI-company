@@ -290,6 +290,58 @@ class HookTranslator:
             "kind": "workflow",
         }
 
+    async def _promote_workflow_team(self, agent: object, payload: dict) -> None:
+        """Re-key a workflow subagent from the session-fallback team to its per-run team.
+
+        Strict one-workflow-one-team: wf_id is ABSENT at SubagentStart (payload only
+        carries the Leader's main transcript), but PRESENT later in agent_transcript_path
+        (SubagentStop) and the subagent's own tool-call payloads. Once a wf_id is visible,
+        migrate the agent to workflow-<wf_id>. Idempotent: no-op if already in that team
+        or if no wf_id is resolvable from this payload.
+        """
+        if agent is None or getattr(agent, "role", None) != WORKFLOW_AGENT_TYPE:
+            return
+        wf_id = self._extract_workflow_run_id(payload)
+        if not wf_id:
+            return
+        team_key = f"workflow-{wf_id}"
+        cur_team = await self.repo.get_team(agent.team_id) if getattr(agent, "team_id", None) else None
+        if cur_team is not None and cur_team.name == team_key:
+            return  # already correctly grouped
+        project_id = getattr(agent, "project_id", None)
+        team = await self.repo.get_team_by_name(team_key)
+        if team is None:
+            team = await self.repo.create_team(
+                name=team_key,
+                mode="coordinate",
+                config={"kind": "workflow", "auto_created": True, "workflow_run_id": wf_id},
+                project_id=project_id,
+            )
+        await self.repo.update_agent(agent.id, team_id=team.id)
+        await self.event_bus.emit(
+            "agent.updated",
+            f"agent:{agent.id}",
+            {"agent_id": agent.id, "changes": {"team_id": team.id, "reason": "workflow_run_regroup"}},
+        )
+
+    def _parse_workflow_plan(self, script: str) -> dict:
+        """Statically extract a Workflow run's planned roster from its script (Step 4).
+
+        Knowable up-front (before any agent runs): meta.phases (declarative skeleton)
+        and literal agent() calls. NOT knowable: dynamic fan-out (.map / while / pipeline
+        over runtime arrays) — reported as a count of dynamic nodes whose size is runtime.
+        """
+        phases = re.findall(r"title:\s*['\"]([^'\"]+)['\"]", script)
+        literal_agents = len(re.findall(r"\bagent\(", script))
+        dynamic_nodes = len(re.findall(r"\.map\(|while\s*\(|\bpipeline\(", script))
+        m = re.search(r"name:\s*['\"]([^'\"]+)['\"]", script)
+        return {
+            "name": m.group(1) if m else "",
+            "phases": phases,
+            "literal_agent_count": literal_agents,
+            "dynamic_nodes": dynamic_nodes,
+        }
+
     async def _on_subagent_start(self, payload: dict) -> dict:
         """Handle sub-agent start event.
 
@@ -503,6 +555,9 @@ class HookTranslator:
                     agent.id,
                     last_active_at=datetime.now(),
                 )
+                # Strict 1:1 — SubagentStop carries agent_transcript_path with the wf_id;
+                # promote workflow subagents out of the session-fallback team into their run team.
+                await self._promote_workflow_team(agent, payload)
                 updated.append(agent.id)
         else:
             # Fallback: find BUSY agents in this session, only update last_active_at without changing status
@@ -933,6 +988,27 @@ class HookTranslator:
 
         input_summary = self._extract_input_summary(tool_name, tool_input)
 
+        # Step 4 — pre-register the planned roster when a Workflow is launched.
+        # The script is in tool_input.script (confirmed); parse meta.phases (declarative,
+        # 100% knowable) + literal agent() calls so the run's skeleton is visible BEFORE
+        # any agent starts working (esp. serial later phases). Dynamic fan-out size is runtime.
+        if tool_name == "Workflow" and isinstance(tool_input, dict):
+            try:
+                plan = self._parse_workflow_plan(str(tool_input.get("script", "")))
+                await self.event_bus.emit(
+                    "workflow.planned",
+                    f"session:{session_id}",
+                    {
+                        "session_id": session_id,
+                        "name": plan["name"],
+                        "phases": plan["phases"],
+                        "literal_agent_count": plan["literal_agent_count"],
+                        "dynamic_nodes": plan["dynamic_nodes"],
+                    },
+                )
+            except Exception:  # noqa: BLE001 — pre-registration must never block the call
+                pass
+
         # Resolve which agent this tool call belongs to (supports cc_id exact match + name fallback)
         target_agent = await self._resolve_agent(cc_agent_id, agent_name, session_id)
 
@@ -954,6 +1030,10 @@ class HookTranslator:
                 if healed_pid:
                     update_fields["project_id"] = healed_pid
             await self.repo.update_agent(target_agent.id, **update_fields)
+
+            # Strict 1:1 — a workflow subagent's own tool call may carry agent_transcript_path
+            # with the wf_id; promote it out of the session-fallback team as early as possible.
+            await self._promote_workflow_team(target_agent, payload)
 
             start_time = datetime.now()
             activity = await self.repo.create_activity(

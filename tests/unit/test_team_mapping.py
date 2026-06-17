@@ -360,3 +360,61 @@ class TestWorkflowSubagentTracking:
         result = await ht._on_subagent_start(payload)
         assert result["status"] == "created"
         assert await repo.get_team_by_name("workflow-session-abcdef12") is not None
+
+
+class TestWorkflowStrict1to1AndStep4:
+    """strict 1:1 (re-key by wf_id) + Step 4 (parse plan from script)."""
+
+    def _wf_payload(self, wf_id, agent_id, session_id="sess-x", event="SubagentStop"):
+        # SubagentStop / subagent PreToolUse carry agent_transcript_path with the wf dir
+        atp = (r"C:\Users\X\.claude\projects\P\%s\subagents\workflows\%s\agent-%s.jsonl"
+               % (session_id, wf_id, agent_id))
+        return {"hook_event_name": event, "agent_id": agent_id,
+                "agent_type": "workflow-subagent", "session_id": session_id,
+                "agent_transcript_path": atp, "transcript_path": f"C:/p/{session_id}.jsonl"}
+
+    @pytest.mark.asyncio
+    async def test_subagent_stop_promotes_to_per_run_team(self, translator):
+        """Agent registered in session-fallback team migrates to workflow-<wf_id> on Stop."""
+        ht, repo = translator
+        # 1. SubagentStart (no wf_id) -> session fallback team
+        start = {"hook_event_name": "SubagentStart", "agent_id": "ag-1",
+                 "agent_type": "workflow-subagent", "session_id": "sess-x"}
+        await ht._on_subagent_start(start)
+        fallback = await repo.get_team_by_name("workflow-session-sess-x")
+        assert fallback is not None
+        assert len(await repo.list_agents(fallback.id)) == 1
+        # 2. SubagentStop carries wf_id -> migrate to workflow-wf_run1
+        await ht._on_subagent_stop(self._wf_payload("wf_run1", "ag-1"))
+        run_team = await repo.get_team_by_name("workflow-wf_run1")
+        assert run_team is not None, "strict 1:1: per-run team must be created"
+        assert len(await repo.list_agents(run_team.id)) == 1, "agent migrated to run team"
+        assert len(await repo.list_agents(fallback.id)) == 0, "agent left the fallback team"
+
+    @pytest.mark.asyncio
+    async def test_two_runs_split_into_two_teams(self, translator):
+        """Two agents from two different runs end up in two distinct per-run teams."""
+        ht, repo = translator
+        for wf, ag in [("wf_aa", "x1"), ("wf_bb", "x2")]:
+            await ht._on_subagent_start({"hook_event_name": "SubagentStart", "agent_id": ag,
+                                         "agent_type": "workflow-subagent", "session_id": "s"})
+            await ht._on_subagent_stop(self._wf_payload(wf, ag, session_id="s"))
+        assert await repo.get_team_by_name("workflow-wf_aa") is not None
+        assert await repo.get_team_by_name("workflow-wf_bb") is not None
+
+    def test_parse_workflow_plan_extracts_phases_and_agents(self, translator):
+        """Step 4: static parse yields phases (declarative) + literal agent count + dynamic nodes."""
+        ht, _ = translator
+        script = """
+        export const meta = { name: 'demo-x', phases: [
+          { title: 'Audit' }, { title: 'Synthesize' }, { title: 'Verify' } ] }
+        phase('Audit')
+        const a = await agent('do A', {label:'a'})
+        const b = await parallel([() => agent('B'), () => agent('C')])
+        const v = await parallel(items.map(x => () => agent('verify '+x)))
+        """
+        plan = ht._parse_workflow_plan(script)
+        assert plan["name"] == "demo-x"
+        assert plan["phases"] == ["Audit", "Synthesize", "Verify"]
+        assert plan["literal_agent_count"] == 4  # A, B, C, verify
+        assert plan["dynamic_nodes"] >= 1        # items.map(...)

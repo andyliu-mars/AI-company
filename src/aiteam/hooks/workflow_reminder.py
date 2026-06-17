@@ -392,6 +392,20 @@ def _check_workflow_reminders(event_data: dict, state: dict, project_id: str | N
             "→ 使用 task_run 或 task_create 添加任务"
         )
 
+    # 1b. Workflow (CC ultracode 编排) — 软提醒，让产出回流 OS（治理层定位）。
+    # OS 不拦 Workflow（CC 平台级 runtime），但提醒 Leader：① 总任务仍要上墙；
+    # ② 在 agent prompt 里加 OS 回写指令，让 workflow 成员自己记账。节流 300s 防噪音。
+    if tool_name == "Workflow":
+        last = state.get("workflow_reminder_at", 0)
+        if now - last >= 300:
+            state["workflow_reminder_at"] = now
+            warnings.append(
+                "[OS提醒] 检测到 Workflow 编排（已自动追踪为团队，无需手动建队）。"
+                "① 此工作方向是否已上墙？→ task_create 登记总任务；"
+                "② 让 workflow 内部 agent 回写 OS：在 agent prompt 里加回写指令"
+                "（ToolSearch 加载 task_memo_add/report_save 后调用），模板见 skill /os-workflow。"
+            )
+
     # 2. Before Agent creation: check task wall, template usage, and historical memos
     if tool_name == "Agent":
         input_dict = event_data.get("tool_input", {})

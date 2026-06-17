@@ -128,7 +128,20 @@ export function TeamsPage() {
               <TableBody>
                 {teams.map((team) => (
                   <TableRow key={team.id}>
-                    <TableCell className="font-medium">{team.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="inline-flex items-center gap-2">
+                        {team.name}
+                        {team.name.startsWith('workflow-') && (
+                          <Badge
+                            variant="outline"
+                            className="border-violet-400 text-violet-600 text-[10px]"
+                            title="CC Workflow（ultracode）自动追踪的运行，非手动团队"
+                          >
+                            工作流
+                          </Badge>
+                        )}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{team.mode}</Badge>
                     </TableCell>

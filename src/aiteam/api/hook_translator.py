@@ -7,6 +7,7 @@ bridging automatic sync between CC sessions and the OS.
 from __future__ import annotations
 
 import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -19,6 +20,14 @@ from aiteam.storage.repository import StorageRepository
 _TEMPLATE_PATH = (
     Path(__file__).resolve().parents[3] / "plugin" / "config" / "agent-prompt-template.md"
 )
+
+# CC ultracode/Workflow runtime tags every internal fan-out agent with this fixed
+# agent_type. We track each Workflow *run* as its own OS team (strict 1:1) so the
+# Dashboard can see "one workflow = one team + N distinct members", instead of the
+# old behaviour that collapsed all of them into a single 'workflow-subagent' row.
+WORKFLOW_AGENT_TYPE = "workflow-subagent"
+# Workflow run id lives in the subagent transcript path: .../workflows/wf_<id>/agent-<aid>.jsonl
+_WF_RUN_ID_RE = re.compile(r"wf_[0-9a-z]+(?:-[0-9a-z]+)*", re.IGNORECASE)
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +197,99 @@ class HookTranslator:
             return await handler(payload)
         return {"status": "ignored", "reason": f"unhandled event: {event_name}"}
 
+    def _extract_workflow_run_id(self, payload: dict) -> str | None:
+        """Pull the Workflow run id (wf_<id>) from the subagent's transcript path.
+
+        CC stores each workflow subagent transcript at
+        .../subagents/workflows/wf_<id>/agent-<aid>.jsonl, so the run id is in the path.
+        Returns None when no transcript field is present (e.g. trimmed from an oversized
+        payload) — the caller then falls back to session-scoped grouping.
+        """
+        for key in ("transcript_path", "agent_transcript_path", "cwd"):
+            val = payload.get(key)
+            if not val:
+                continue
+            m = _WF_RUN_ID_RE.search(str(val).replace("\\", "/"))
+            if m:
+                return m.group(0)
+        return None
+
+    async def _register_workflow_subagent(
+        self, payload: dict, cc_agent_id: str, session_id: str
+    ) -> dict:
+        """Register a CC Workflow fan-out agent as a member of its run's OS team.
+
+        Strict one-workflow-one-team: team key = workflow-<wf_run_id>. Members are
+        deduped by cc_agent_id (NOT by name — all workflow agents share the literal
+        name 'workflow-subagent', so name-dedup would collapse a 16-agent run into one
+        row). Unlike the normal path this does NOT require a pre-existing active team;
+        the workflow team is auto-created so the run is always tracked.
+        """
+        # 1. Dedup by CC agent id — same internal agent re-reporting just refreshes.
+        if cc_agent_id:
+            existing = await self.repo.find_agent_by_cc_id(cc_agent_id)
+            if existing:
+                await self.repo.update_agent(
+                    existing.id,
+                    status="busy",
+                    session_id=session_id,
+                    last_active_at=datetime.now(),
+                )
+                return {"status": "updated", "agent_id": existing.id, "kind": "workflow"}
+
+        # 2. Resolve the workflow run -> team key (strict 1:1; fall back to session).
+        wf_id = self._extract_workflow_run_id(payload)
+        team_key = (
+            f"workflow-{wf_id}" if wf_id else f"workflow-session-{(session_id or 'unknown')[:8]}"
+        )
+
+        # 3. Bind to the launching Leader's project so the team lands in the right place.
+        leader = await self._find_leader(session_id)
+        project_id = getattr(leader, "project_id", None) if leader else None
+
+        # 4. Find-or-create the workflow team (idempotent by name across the run's agents).
+        team = await self.repo.get_team_by_name(team_key)
+        if team is None:
+            team = await self.repo.create_team(
+                name=team_key,
+                mode="coordinate",
+                config={"kind": "workflow", "auto_created": True, "workflow_run_id": wf_id},
+                project_id=project_id,
+            )
+            await self.event_bus.emit(
+                "team.created",
+                f"team:{team.id}",
+                {"team_id": team.id, "name": team_key, "kind": "workflow"},
+            )
+
+        # 5. Register this internal agent as a distinct member (unique name per cc id).
+        member_name = f"wf-{(cc_agent_id or session_id or 'anon')[:10]}"
+        new_agent = await self.repo.create_agent(
+            team_id=team.id,
+            name=member_name,
+            role=WORKFLOW_AGENT_TYPE,
+            source="hook",
+            session_id=session_id,
+            cc_tool_use_id=cc_agent_id,
+        )
+        await self.repo.update_agent(
+            new_agent.id,
+            status="busy",
+            project_id=project_id,
+            last_active_at=datetime.now(),
+        )
+        await self.event_bus.emit(
+            "decision.agent_created",
+            f"agent:{new_agent.id}",
+            {"agent_id": new_agent.id, "name": member_name, "team_id": team.id, "kind": "workflow"},
+        )
+        return {
+            "status": "created",
+            "agent_id": new_agent.id,
+            "team_id": team.id,
+            "kind": "workflow",
+        }
+
     async def _on_subagent_start(self, payload: dict) -> dict:
         """Handle sub-agent start event.
 
@@ -207,6 +309,11 @@ class HookTranslator:
         agent_name = payload.get("agent_type", "unnamed-agent")
         session_id = payload.get("session_id", "")
         cc_team_name = payload.get("cc_team_name", "")
+
+        # Workflow (ultracode) fan-out agents take a dedicated path: each Workflow
+        # run becomes its own OS team, every internal agent a distinct member.
+        if agent_name == WORKFLOW_AGENT_TYPE:
+            return await self._register_workflow_subagent(payload, cc_agent_id, session_id)
 
         existing = None
         leader = None

@@ -50,7 +50,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Agent|Bash|Edit|Write",
+        "matcher": "Agent|Bash|Edit|Write|Workflow",
         "hooks": [
           {
             "type": "command",
@@ -76,7 +76,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Agent|Bash|Edit|Write",
+        "matcher": "Agent|Bash|Edit|Write|Workflow",
         "hooks": [
           {
             "type": "command",

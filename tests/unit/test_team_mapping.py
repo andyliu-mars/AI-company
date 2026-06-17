@@ -283,3 +283,80 @@ class TestSubagentStartTeamMapping:
         result = await ht._on_subagent_start(payload)
         assert result["status"] == "updated"
         assert result["agent_id"] == existing.id
+
+
+class TestWorkflowSubagentTracking:
+    """Tests for _on_subagent_start workflow-subagent branch (one workflow = one team)."""
+
+    def _wf_payload(self, wf_id: str, agent_id: str, session_id: str = "sess-leader-1") -> dict:
+        tp = (
+            r"C:\Users\X\.claude\projects\P\%s\subagents\workflows\%s\agent-%s.jsonl"
+            % (session_id, wf_id, agent_id)
+        )
+        return {
+            "hook_event_name": "SubagentStart",
+            "agent_id": agent_id,
+            "agent_type": "workflow-subagent",
+            "session_id": session_id,
+            "transcript_path": tp,
+        }
+
+    @pytest.mark.asyncio
+    async def test_creates_team_per_run_without_active_team(self, translator):
+        """A workflow subagent auto-creates its run team even with no pre-existing team."""
+        ht, repo = translator
+        result = await ht._on_subagent_start(self._wf_payload("wf_aaa111-b2", "agent-001"))
+        assert result["status"] == "created"
+        assert result["kind"] == "workflow"
+        team = await repo.get_team_by_name("workflow-wf_aaa111-b2")
+        assert team is not None
+        agents = await repo.list_agents(team.id)
+        assert len(agents) == 1
+        assert agents[0].role == "workflow-subagent"
+
+    @pytest.mark.asyncio
+    async def test_same_run_two_agents_one_team_two_members(self, translator):
+        """Two agents of the SAME workflow run -> one team, two distinct members (no collapse)."""
+        ht, repo = translator
+        await ht._on_subagent_start(self._wf_payload("wf_run9", "agent-AAA"))
+        await ht._on_subagent_start(self._wf_payload("wf_run9", "agent-BBB"))
+        team = await repo.get_team_by_name("workflow-wf_run9")
+        agents = await repo.list_agents(team.id)
+        assert len(agents) == 2, "16-agent collapse bug: members must not dedup by shared name"
+        names = {a.name for a in agents}
+        assert names == {"wf-agent-AAAA"[:13], "wf-agent-BBBB"[:13]} or len(names) == 2
+
+    @pytest.mark.asyncio
+    async def test_different_runs_separate_teams(self, translator):
+        """Different workflow runs land in different teams (strict 1:1)."""
+        ht, repo = translator
+        await ht._on_subagent_start(self._wf_payload("wf_alpha", "agent-1"))
+        await ht._on_subagent_start(self._wf_payload("wf_beta", "agent-2"))
+        assert await repo.get_team_by_name("workflow-wf_alpha") is not None
+        assert await repo.get_team_by_name("workflow-wf_beta") is not None
+
+    @pytest.mark.asyncio
+    async def test_dedup_same_cc_agent_id(self, translator):
+        """Same cc_agent_id reported twice -> single member, second call updates."""
+        ht, repo = translator
+        r1 = await ht._on_subagent_start(self._wf_payload("wf_dd", "agent-same"))
+        r2 = await ht._on_subagent_start(self._wf_payload("wf_dd", "agent-same"))
+        assert r1["status"] == "created"
+        assert r2["status"] == "updated"
+        team = await repo.get_team_by_name("workflow-wf_dd")
+        agents = await repo.list_agents(team.id)
+        assert len(agents) == 1
+
+    @pytest.mark.asyncio
+    async def test_fallback_to_session_when_no_transcript(self, translator):
+        """No transcript_path -> fall back to session-scoped workflow team."""
+        ht, repo = translator
+        payload = {
+            "hook_event_name": "SubagentStart",
+            "agent_id": "agent-x",
+            "agent_type": "workflow-subagent",
+            "session_id": "abcdef123456",
+        }
+        result = await ht._on_subagent_start(payload)
+        assert result["status"] == "created"
+        assert await repo.get_team_by_name("workflow-session-abcdef12") is not None

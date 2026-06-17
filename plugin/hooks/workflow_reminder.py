@@ -52,8 +52,9 @@ def _get_api_url() -> str:
 # Threshold for Leader delegation check
 _LEADER_CONSECUTIVE_THRESHOLD = 8
 
-# Tool names considered "delegation" actions (calling these resets the counter)
-_DELEGATION_TOOLS = {"Agent", "TeamCreate", "SendMessage"}
+# Tool names considered "delegation" actions (calling these resets the counter).
+# Workflow = CC ultracode 编排委派，同属委派动作。
+_DELEGATION_TOOLS = {"Agent", "TeamCreate", "SendMessage", "Workflow"}
 
 # Infrastructure tools only Leader can do — don't count toward B0.9 threshold
 _INFRA_TOOLS = {

@@ -53,7 +53,10 @@ def _get_api_url() -> str:
 _LEADER_CONSECUTIVE_THRESHOLD = 8
 
 # Tool names considered "delegation" actions (calling these resets the counter)
-_DELEGATION_TOOLS = {"Agent", "TeamCreate", "SendMessage"}
+# Workflow = CC ultracode 编排工具。Leader 调用它就是在委派执行（交给 CC 内置工作流），
+# 与 TeamCreate 派团队成员同属委派动作，应重置 B0.9「连续自己干」计数器，
+# 不再催 Leader「为什么不委派」。任务上墙(task_create)提醒不受影响，照常保留。
+_DELEGATION_TOOLS = {"Agent", "TeamCreate", "SendMessage", "Workflow"}
 
 # Infrastructure tools only Leader can do — don't count toward B0.9 threshold
 _INFRA_TOOLS = {

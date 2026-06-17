@@ -49,6 +49,19 @@ class TestLeaderDoingTooMuch:
         result = _check_leader_doing_too_much(bash_event, state)
         assert result is None
 
+    def test_workflow_call_resets_counter(self):
+        """Workflow(ultracode 委派)调用应重置计数器——用 CC 工作流委派不该被催'为什么不委派'。"""
+        state: dict = {}
+        bash_event = {"tool_name": "Bash", "hook_event_name": "PreToolUse"}
+        workflow_event = {"tool_name": "Workflow", "hook_event_name": "PreToolUse"}
+
+        for _ in range(7):
+            _check_leader_doing_too_much(bash_event, state)
+
+        result = _check_leader_doing_too_much(workflow_event, state)
+        assert result is None
+        assert state.get("leader_consecutive_calls", 0) == 0
+
     def test_team_create_resets_counter(self):
         """TeamCreate调用也应重置计数器。"""
         state: dict = {}

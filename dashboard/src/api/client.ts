@@ -2,7 +2,11 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.host}/ws/events`;
 
-// Global project context — set by ProjectContext, read by apiFetch
+// Project scope state — backs the ecosystem 项目筛选 (EcosystemProjectFilter via ProjectContext).
+// The selected X-Project-Id is attached ONLY to /api/ecosystem requests (see apiFetch gate below),
+// so the backend scopes ecosystem data WITHOUT scoping other endpoints (teams/tasks/reports/...).
+// NOTE: this is NOT a global app switcher. The only UI that sets it is the ecosystem filter;
+// do not surface a project switcher in global chrome (Header/Sidebar). See EcosystemProjectFilter.tsx.
 let currentProjectPath: string | null = null;
 let currentProjectId: string | null = null;
 
@@ -24,13 +28,18 @@ export function getCurrentProjectId(): string | null {
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const projectHeaders: Record<string, string> = {};
-  // HTTP headers must be ISO-8859-1 (RFC 7230). CJK paths (e.g. "C:/Users/TUF/Desktop/AI团队框架")
-  // would crash fetch with "non ISO-8859-1 code point". X-Project-Id (UUID) is always ASCII-safe
-  // and sufficient for project isolation; X-Project-Dir is a cwd-fallback for MCP/Hook tools.
-  if (currentProjectPath && /^[\x00-\x7F]*$/.test(currentProjectPath)) {
-    projectHeaders['X-Project-Dir'] = currentProjectPath;
+  // Project scope is an ECOSYSTEM-ONLY filter — attach X-Project-Id/Dir ONLY to /api/ecosystem
+  // requests. Attaching them globally (the original behavior) leaked the selected/persisted project
+  // into every endpoint: e.g. /api/teams got scoped, so ProjectDetailPage's client-side
+  // `project_id === projectId` filter matched nothing and ALL teams "disappeared". A stale pin in
+  // localStorage was also unreachable once the switcher left the global Header — hence this hard gate.
+  // (HTTP headers must be ISO-8859-1; CJK paths would crash fetch, so X-Project-Dir is ASCII-gated.)
+  if (path.startsWith('/api/ecosystem')) {
+    if (currentProjectPath && /^[\x00-\x7F]*$/.test(currentProjectPath)) {
+      projectHeaders['X-Project-Dir'] = currentProjectPath;
+    }
+    if (currentProjectId) projectHeaders['X-Project-Id'] = currentProjectId;
   }
-  if (currentProjectId) projectHeaders['X-Project-Id'] = currentProjectId;
 
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...projectHeaders, ...options?.headers },

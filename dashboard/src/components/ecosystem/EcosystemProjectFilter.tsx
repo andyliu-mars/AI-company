@@ -12,17 +12,23 @@ import { useProject } from '@/context/ProjectContext';
 import { useProjects } from '@/api/projects';
 
 /**
- * 顶部项目切换器 — 显示当前激活项目，点击展开 dropdown 切换。
+ * 生态库项目筛选器 — 选择「查看哪个项目的生态库」。每个项目有自己方向的生态仓档案。
+ *
+ * ⚠️ 作用域：这是 **ecosystem 专属** 的项目筛选，只用于 ecosystem 列表页 (/ecosystem)。
+ *    切勿放回全局 Header / components/layout —— 历史教训 (v1.6.0)：本组件原名
+ *    `ProjectSwitcher`、放在 components/layout、挂在右上角 Header，并在 client.ts 被注释为
+ *    「Global project context」，导致被误当成全局应用切换器；而实际上除 ecosystem 外没有
+ *    任何页面真正消费它（任务墙/报告等各有页内筛选）。命名+目录已纠正以锁死语义。
+ *    若将来真要做全局项目切换，请另建组件，不要复用本组件。
  *
  * 切换时：
  *   1. ProjectContext.switchProject 同步更新 api/client 的 module-level state
- *      (X-Project-Id / X-Project-Dir header) — 在 setState 之前写入避免 race
- *   2. invalidateQueries — 刷新除项目列表外的所有查询，让所有页面重拉数据
- *
- * 之前的 bug：useEffect 同步 module state 比 setState 晚一拍，导致 invalidate
- * 触发的 refetch 用了旧 X-Project-Id header。修复：在 switchProject 中同步写入。
+ *      (X-Project-Id header) — 在 setState 之前写入避免 race
+ *   2. invalidateQueries — 刷新查询让 ecosystem 列表按新项目重拉
+ *      (注：当前 X-Project-Id 会附加到所有请求，故切换也会影响其它 header-scoped 调用；
+ *       这是已知遗留，未来可改为仅对 ecosystem 请求附加 per-call header)
  */
-export function ProjectSwitcher() {
+export function EcosystemProjectFilter() {
   const { projectId, projectName, switchProject, clearProject } = useProject();
   const { data, isLoading } = useProjects();
   const qc = useQueryClient();
@@ -64,7 +70,7 @@ export function ProjectSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label="切换项目"
+        aria-label="切换生态库项目"
         className="inline-flex items-center gap-1.5 h-8 px-3 max-w-[260px] rounded-md border border-input bg-background text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
       >
         {projectId ? (
@@ -76,7 +82,7 @@ export function ProjectSwitcher() {
         <ChevronsUpDown className="h-3 w-3 text-muted-foreground shrink-0" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
-        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">切换项目</div>
+        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">切换生态库项目</div>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleClear}>
           <span className="flex items-center gap-2 flex-1">

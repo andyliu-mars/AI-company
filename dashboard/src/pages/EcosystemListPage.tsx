@@ -9,11 +9,13 @@ import { RepoCard } from '@/components/ecosystem/RepoCard';
 import { FilterBar } from '@/components/ecosystem/FilterBar';
 import { EcosystemStatsBar } from '@/components/ecosystem/EcosystemStatsBar';
 import { RecentScanRunsBar } from '@/components/ecosystem/RecentScanRunsBar';
+import { EcosystemProjectFilter } from '@/components/ecosystem/EcosystemProjectFilter';
 import { useProject } from '@/context/ProjectContext';
 
 /**
  * Ecosystem 列表页 — v1.6.0：取消失活筛选，所有库永久参与搜索。
- * 项目筛选交给右上角项目下拉，左上角 tab 全部移除。
+ * 项目筛选 = 本页头部的「生态库项目」下拉 (EcosystemProjectFilter，按项目隔离生态库)。
+ * ⚠️ 这是 ecosystem 专属筛选，切勿移到全局 Header（历史教训详见 EcosystemProjectFilter.tsx）。
  * "显示已删除" 由 FilterBar 内 checkbox 控制（默认隐藏）。
  *
  * 路径：/ecosystem
@@ -102,16 +104,20 @@ export function EcosystemListPage() {
               )}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            nativeButton={false}
-            render={<Link to="/ecosystem/batches" />}
-          >
-            <Layers className="mr-1 h-4 w-4" aria-hidden="true" />
-            浅扫批次
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-muted-foreground">生态库项目</span>
+            <EcosystemProjectFilter />
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              nativeButton={false}
+              render={<Link to="/ecosystem/batches" />}
+            >
+              <Layers className="mr-1 h-4 w-4" aria-hidden="true" />
+              浅扫批次
+            </Button>
+          </div>
           <Button
             variant="outline"
             size="sm"

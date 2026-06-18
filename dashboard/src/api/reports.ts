@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from './client';
-import { useProject } from '@/context/ProjectContext';
 
 export interface ReportMeta {
   id: string;
@@ -20,22 +19,20 @@ export interface ReportDetail extends ReportMeta {
 }
 
 export function useReports(reportType?: string, author?: string, projectId?: string) {
-  const { projectPath } = useProject();
   const params = new URLSearchParams();
   if (reportType) params.set('report_type', reportType);
   if (author) params.set('author', author);
   if (projectId) params.set('project_id', projectId);
   const qs = params.toString();
   return useQuery({
-    queryKey: ['reports', projectPath, reportType, author, projectId],
+    queryKey: ['reports', reportType, author, projectId],
     queryFn: () => apiFetch<ReportMeta[]>(`/api/reports${qs ? `?${qs}` : ''}`),
   });
 }
 
 export function useReportDetail(reportId: string | null) {
-  const { projectPath } = useProject();
   return useQuery({
-    queryKey: ['reports', projectPath, 'detail', reportId],
+    queryKey: ['reports', 'detail', reportId],
     queryFn: () => apiFetch<ReportDetail>(`/api/reports/${reportId!}`),
     enabled: !!reportId,
   });

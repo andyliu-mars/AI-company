@@ -879,22 +879,26 @@ export function ProjectDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
+          <div className="space-y-4 text-sm">
+            {/* 描述：占满整行，长文本可读性最优 */}
             <div>
               <p className="text-muted-foreground">{t.projectDetail.description}</p>
-              <p className="mt-1">{project.description || '--'}</p>
+              <p className="mt-1 leading-relaxed whitespace-pre-wrap">{project.description || '--'}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">{t.projectDetail.activeTeams}</p>
-              <p className="mt-1">{activeTeams.length} {t.projectDetail.teamsUnit}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">{t.projectDetail.historyTeams}</p>
-              <p className="mt-1">{completedTeams.length} {t.projectDetail.teamsUnit}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">{t.projectDetail.createdAt}</p>
-              <p className="mt-1">{new Date(project.created_at).toLocaleDateString('zh-CN')}</p>
+            {/* 三个统计：紧凑成一排（各占数字宽度），上方细分隔线 */}
+            <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-t pt-3">
+              <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">{t.projectDetail.activeTeams}</span>
+                <span className="font-medium tabular-nums">{activeTeams.length} {t.projectDetail.teamsUnit}</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">{t.projectDetail.historyTeams}</span>
+                <span className="font-medium tabular-nums">{completedTeams.length} {t.projectDetail.teamsUnit}</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">{t.projectDetail.createdAt}</span>
+                <span className="font-medium tabular-nums">{new Date(project.created_at).toLocaleDateString('zh-CN')}</span>
+              </div>
             </div>
           </div>
         </CardContent>

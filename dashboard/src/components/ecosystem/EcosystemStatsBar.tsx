@@ -54,7 +54,7 @@ function StatCard({
 }
 
 /**
- * 统计条 — 列表页顶部的项目+全局指标视图。
+ * 统计条 — ecosystem 列表页顶部的指标视图（按当前选中项目的生态库统计）。
  *
  * 语义说明（Release blocker 修复）：
  *   - 已深扫 = EcosystemDeepReview.status='completed' 真实行数（不是 needs_deep_review=False）

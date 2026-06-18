@@ -3,6 +3,17 @@
 All notable changes to AI Team OS will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+
+### Fixed
+
+- **Teams list vanished on the project detail page**: `apiFetch` previously injected the `X-Project-Id` header on *every* request, so a stale global project pin in `localStorage` also scoped `/api/teams` to a single project. ProjectDetailPage fetches all teams and filters them client-side (`project_id === projectId`), so the scoped response matched nothing and both active and history teams disappeared for every project. The `X-Project-Id` / `X-Project-Dir` headers are now attached **only to `/api/ecosystem` requests**, so all other endpoints are never affected by the project scope.
+
+### Changed
+
+- **Ecosystem project filter moved to where it belongs**: the project dropdown is really a "view this project's ecosystem library" filter, but it had been mounted as a global Header switcher (`components/layout/ProjectSwitcher`) and commented as "Global project context" in `client.ts`, so it read as a global app switcher. The global Header switcher is removed; the component is renamed `EcosystemProjectFilter`, moved to `components/ecosystem/`, and shown only on the `/ecosystem` list page. Comments now record the history and a "do not globalize" guard to prevent regression.
+- **Project detail header layout**: the description now spans the full width (best readability for long descriptions), and active-teams / history-teams / created-date are packed into one compact row instead of four equal columns that squeezed the description.
+
 ## [1.5.0] — 2026-05-08
 
 ### Added — Ecosystem Research Platform v2: Progressive Deep-Review Funnel

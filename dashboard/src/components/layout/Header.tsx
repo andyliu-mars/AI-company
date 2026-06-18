@@ -2,7 +2,6 @@ import { useLocation } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { useT } from '@/i18n';
-import { ProjectSwitcher } from './ProjectSwitcher';
 
 export function Header() {
   const location = useLocation();
@@ -30,9 +29,6 @@ export function Header() {
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-5" />
       <h1 className="text-lg font-semibold">{title}</h1>
-      <div className="ml-auto flex items-center gap-2">
-        <ProjectSwitcher />
-      </div>
     </header>
   );
 }

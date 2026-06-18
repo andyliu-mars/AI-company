@@ -3,6 +3,17 @@
 AI Team OS 的所有重要变更均记录在此文件中。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/)
 
+## [Unreleased]
+
+### 修复
+
+- **项目详情页团队列表消失**：`apiFetch` 原先把 `X-Project-Id` 头注入到*所有*请求，导致残留在 `localStorage` 的全局项目 pin 把 `/api/teams` 也限定到单一项目。ProjectDetailPage 是拉全量团队后客户端按 `project_id === projectId` 过滤，被限定后过滤结果为空，于是每个项目的活跃/历史团队全部消失。现把 `X-Project-Id` / `X-Project-Dir` 头**硬性限定为只给 `/api/ecosystem` 请求**，其它端点永不被项目作用域影响。
+
+### 变更
+
+- **生态库项目筛选归位**：项目筛选下拉本属于「按项目查看生态库」的功能，却被挂成全局 Header 切换器（`components/layout/ProjectSwitcher`）并在 `client.ts` 注释为「Global project context」，因而被误当成全局应用切换器。现移除全局 Header 处的切换器，组件改名 `EcosystemProjectFilter` 并迁至 `components/ecosystem/`，仅在 `/ecosystem` 列表页提供；相关注释补充历史教训与「勿全局化」硬约束以防复发。
+- **项目详情头部布局重排**：描述独占整行（长描述可读性最优），当前团队 / 历史团队 / 创建时间三项紧凑成一排，不再四等分挤压描述。
+
 ## [1.5.0] — 2026-05-08
 
 ### 新增 — 生态研究平台 v2：渐进式深扫漏斗

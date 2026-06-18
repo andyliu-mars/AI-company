@@ -134,7 +134,7 @@ CEO 从不空闲。它按任务墙优先级持续推进工作：
 - **Stage 3 — 参考 / 集成标记**：`mark_as_reference` 加 tag 便于未来快速召回（避免重复深扫）；`start_integration` 触发现有 `task_create` 启动实际集成任务
 - **项目可定制阈值**：每个项目独立设 `min_stars` / `top_n` / `refresh_interval_days` / `focus_topics`。AI Team OS 默认：stars ≥ 5K，top 200，关注 claude-code / mcp / agent-framework
 - **活跃/全量双视图**：数据**永不删除**。stars 跌出阈值的仓保留（仅 `is_active=False`）；涨回自动激活 + 重新入队 Stage 0
-- **Dashboard `/ecosystem`**：列表带 stage 徽章 + 研究历程 timeline + 候选筛选页 (`/ecosystem/research`) + 项目设置 tab
+- **Dashboard `/ecosystem`**：列表带 stage 徽章 + 研究历程 timeline + 项目筛选下拉（按项目查看生态库）+ 候选筛选页 (`/ecosystem/research`) + 项目设置 tab
 - **30+ MCP 工具 / 15+ REST 端点 / SQLite append-only 历史快照**
 
 ---

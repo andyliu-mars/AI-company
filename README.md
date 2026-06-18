@@ -134,7 +134,7 @@ A project-isolated **knowledge base** that accumulates research findings over ti
 - **Stage 3 — Reference / Integrate marking**: `mark_as_reference` adds tag for future quick recall (avoid re-deep-scanning); `start_integration` triggers existing `task_create` for actual implementation
 - **Project-customizable thresholds**: each project sets `min_stars` / `top_n` / `refresh_interval_days` / `focus_topics`. AI Team OS default: stars ≥ 5K, top 200, focus on claude-code / mcp / agent-framework
 - **Active vs Full dual-view**: data is **append-only forever**. Stars-falling repos kept (just `is_active=False`); stars climbing back auto-promotes + re-queues Stage 0
-- **Dashboard `/ecosystem`**: list with stage badges + research timeline + candidate-filter page (`/ecosystem/research`) + per-project settings tab
+- **Dashboard `/ecosystem`**: list with stage badges + research timeline + project filter dropdown (view a project's ecosystem) + candidate-filter page (`/ecosystem/research`) + per-project settings tab
 - **30+ MCP tools / 15+ REST endpoints / SQLite append-only history snapshots**
 
 ---

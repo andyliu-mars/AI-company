@@ -1,0 +1,30 @@
+{
+  "進度根目錄": "C:/Users/andyl/Documents/進度",
+  "aiteam_api": "http://localhost:8000",
+  "projects": {
+    "01_汽車平台_車界通": {
+      "project_id": "0112f2b3-8c75-4d77-838d-aa19c62f80ea",
+      "name": "車界通／汽車平台"
+    },
+    "02_AAS_AI_Agent工作平台": {
+      "project_id": "66267460-7263-4004-a166-5977e4f379f6",
+      "name": "AAS／AI Agent工作平台"
+    },
+    "03_影片Agent_PhotoStoryVideo": {
+      "project_id": "48322d9f-3637-4cfd-a283-faa14c51a68d",
+      "name": "影片Agent／PhotoStoryVideo"
+    },
+    "04_婚禮官網_MarsZenFilms": {
+      "project_id": "2da7422b-75bd-4834-8b82-372b4ecf2574",
+      "name": "婚禮官網／MarsZenFilms"
+    },
+    "05_魔法APP_星座王子馬爾斯": {
+      "project_id": "c25f6140-4d6a-4f10-8deb-cf88b9cd7784",
+      "name": "魔法APP／星座王子馬爾斯"
+    },
+    "06_豐泰基金會獎助學金系統_sfams": {
+      "project_id": "9b2f0df7-b518-4df5-995d-fd8bd4609370",
+      "name": "豐泰基金會獎助學金系統／sfams"
+    }
+  }
+}

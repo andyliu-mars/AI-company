@@ -23,7 +23,7 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     pending_approval: '待批准',
     approved: '已批准',
-    running: '运行中',
+    running: '執行中',
     completed: '已完成',
     cancelled: '已取消',
   };
@@ -36,7 +36,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 /**
- * 浅扫批次详情页 — 展示批次元信息 + 候选仓清单，支持批准/取消操作。
+ * 淺掃批次詳情頁 — 展示批次元資訊 + 候選倉清單，支援批准/取消操作。
  * 路由: /ecosystem/batches/:batchId
  */
 export function EcosystemBatchDetailPage() {
@@ -82,7 +82,7 @@ export function EcosystemBatchDetailPage() {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
         <Loader2 className="w-5 h-5 animate-spin mr-2" />
-        加载中...
+        載入中...
       </div>
     );
   }
@@ -90,7 +90,7 @@ export function EcosystemBatchDetailPage() {
   if (!batch) {
     return (
       <div className="p-6 text-center text-muted-foreground">
-        <p>批次不存在或已被删除</p>
+        <p>批次不存在或已被刪除</p>
         <Button variant="link" onClick={() => navigate('/ecosystem/batches')}>
           返回批次列表
         </Button>
@@ -105,7 +105,7 @@ export function EcosystemBatchDetailPage() {
           <ArrowLeft className="w-4 h-4 mr-1" />
           返回列表
         </Button>
-        <h1 className="text-xl font-bold">批次详情</h1>
+        <h1 className="text-xl font-bold">批次詳情</h1>
         <StatusBadge status={batch.status} />
         {batch.status === 'pending_approval' && (
           <Badge variant="destructive" className="animate-pulse ml-1">需要批准</Badge>
@@ -118,15 +118,15 @@ export function EcosystemBatchDetailPage() {
         </div>
       )}
 
-      {/* 批次元信息 */}
+      {/* 批次元資訊 */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">批次信息</CardTitle>
+            <CardTitle className="text-base">批次資訊</CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="w-4 h-4 mr-1" />
-                刷新
+                重新整理
               </Button>
               {canApprove && (
                 <Button size="sm" onClick={handleApprove} disabled={approveBatch.isPending}>
@@ -135,13 +135,13 @@ export function EcosystemBatchDetailPage() {
                   ) : (
                     <CheckCircle2 className="w-4 h-4 mr-1" />
                   )}
-                  批准并启动
+                  批准並啟動
                 </Button>
               )}
               {batch.status === 'running' && (
                 <Button size="sm" variant="outline" onClick={() => navigate('/ecosystem/shallow-queue')}>
                   <Play className="w-4 h-4 mr-1" />
-                  查看进度
+                  檢視進度
                 </Button>
               )}
               {canCancel && (
@@ -160,48 +160,48 @@ export function EcosystemBatchDetailPage() {
               <dd className="font-mono text-xs mt-0.5">{batch.id}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">触发源</dt>
+              <dt className="text-muted-foreground text-xs">觸發源</dt>
               <dd className="font-medium mt-0.5">{batch.triggered_by}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">候选仓数</dt>
+              <dt className="text-muted-foreground text-xs">候選倉數</dt>
               <dd className="font-medium mt-0.5">{batch.candidates_count}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">创建时间</dt>
+              <dt className="text-muted-foreground text-xs">建立時間</dt>
               <dd className="mt-0.5">{formatDatetime(batch.created_at)}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">批准时间</dt>
+              <dt className="text-muted-foreground text-xs">批准時間</dt>
               <dd className="mt-0.5">{formatDatetime(batch.approved_at)}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">完成时间</dt>
+              <dt className="text-muted-foreground text-xs">完成時間</dt>
               <dd className="mt-0.5">{formatDatetime(batch.completed_at)}</dd>
             </div>
             {batch.status !== 'pending_approval' && (
               <>
                 <div>
-                  <dt className="text-muted-foreground text-xs">新增仓</dt>
+                  <dt className="text-muted-foreground text-xs">新增倉</dt>
                   <dd className="font-medium mt-0.5 text-green-600">{batch.new_repos_count}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground text-xs">更新仓</dt>
+                  <dt className="text-muted-foreground text-xs">更新倉</dt>
                   <dd className="font-medium mt-0.5">{batch.updated_repos_count}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground text-xs">Metadata 变化</dt>
+                  <dt className="text-muted-foreground text-xs">Metadata 變化</dt>
                   <dd className="font-medium mt-0.5 text-amber-600">{batch.metadata_changed_count}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground text-xs">失败</dt>
+                  <dt className="text-muted-foreground text-xs">失敗</dt>
                   <dd className="font-medium mt-0.5 text-red-500">{batch.failed_count}</dd>
                 </div>
               </>
             )}
             {batch.trigger_reason && (
               <div className="col-span-2 md:col-span-3">
-                <dt className="text-muted-foreground text-xs">触发原因</dt>
+                <dt className="text-muted-foreground text-xs">觸發原因</dt>
                 <dd className="mt-0.5 text-sm">{batch.trigger_reason}</dd>
               </div>
             )}
@@ -209,16 +209,16 @@ export function EcosystemBatchDetailPage() {
         </CardContent>
       </Card>
 
-      {/* 候选仓清单 */}
+      {/* 候選倉清單 */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">
-            候选仓清单
+            候選倉清單
             <span className="ml-2 text-sm text-muted-foreground font-normal">
-              共 {itemsData?.total ?? batch.candidates_count} 仓
+              共 {itemsData?.total ?? batch.candidates_count} 倉
             </span>
             {batch.status === 'pending_approval' && (
-              <Badge variant="outline" className="ml-2 text-[10px]">预览 — 批准后正式入队</Badge>
+              <Badge variant="outline" className="ml-2 text-[10px]">預覽 — 批准後正式入隊</Badge>
             )}
           </CardTitle>
         </CardHeader>
@@ -226,22 +226,22 @@ export function EcosystemBatchDetailPage() {
           {itemsLoading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              加载候选仓...
+              載入候選倉...
             </div>
           ) : items.length === 0 ? (
             <div className="text-center py-8 text-sm text-muted-foreground">
               {batch.status === 'pending_approval'
-                ? '候选仓列表为空（所有仓均为最新状态）'
-                : '暂无数据'}
+                ? '候選倉列表為空（所有倉均為最新狀態）'
+                : '暫無資料'}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>仓库</TableHead>
+                  <TableHead>倉庫</TableHead>
                   <TableHead className="text-center">Stars</TableHead>
-                  <TableHead>阶段状态</TableHead>
-                  <TableHead>浅扫摘要预览</TableHead>
+                  <TableHead>階段狀態</TableHead>
+                  <TableHead>淺掃摘要預覽</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

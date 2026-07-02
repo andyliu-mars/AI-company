@@ -7,13 +7,13 @@ export type Lang = keyof typeof langs;
 export type { Translations } from './zh';
 
 function detectLang(): Lang {
-  // 1. 用户手动设置过的优先
+  // 1. 使用者手動設定過的優先
   const stored = localStorage.getItem('lang') as Lang;
   if (stored && stored in langs) return stored;
-  // 2. 检测浏览器语言
+  // 2. 檢測瀏覽器語言
   const browserLang = navigator.language?.toLowerCase() || '';
   if (browserLang.startsWith('zh')) return 'zh';
-  return 'en'; // 默认英文
+  return 'en'; // 預設英文
 }
 
 export function useLanguage() {

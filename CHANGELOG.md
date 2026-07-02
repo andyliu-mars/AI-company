@@ -59,7 +59,7 @@ Refactored the v1.4.0 "single-pass 5-section deep-review" into a **4-stage progr
 ### Added — Frontend stage funnel UI (Stage E)
 
 - List page: stage colored badges (queued/shallow_done/architecture_done/debated/referenced/integrated/_failed) + 3 tabs (active/full/deleted)
-- Detail page: new "研究历程" timeline tab showing stage progression + agent outputs + `shallow_summary_history` snapshots
+- Detail page: new "研究歷程" timeline tab showing stage progression + agent outputs + `shallow_summary_history` snapshots
 - New `/ecosystem/research` candidate-filtering page: input research goal → tags-based candidate list with shallow_summary preview → multi-select to trigger Stage 1 → finalists trigger Stage 2
 - Project settings tab on project detail page: 8 fields (min_stars / top_n / refresh_interval_days / focus_topics / focus_languages / shallow_concurrency / deep_concurrency / auto_shallow_on_archive)
 - Failed repos: red badge + "Retry now" button (calls `POST /api/ecosystem/profiles/{id}/retry`)
@@ -156,7 +156,7 @@ A complete project-isolated platform for discovering, tagging, and deep-reviewin
 
 ### Frontend bug fix (Stage K2)
 
-- **Detail page `深度档案区` placeholder removed** — Previously the detail page hardcoded "TODO: Stage E v2 API" placeholder text even though the v2 API (`/profiles/{name}/full`) existed since Stage E. `useEcosystemRepoFull` hook now consumes v2 directly with UUID → full_name resolution and path-segment encoding for slashes. v2 failure gracefully degrades to v1 list-based fallback.
+- **Detail page `深度檔案區` placeholder removed** — Previously the detail page hardcoded "TODO: Stage E v2 API" placeholder text even though the v2 API (`/profiles/{name}/full`) existed since Stage E. `useEcosystemRepoFull` hook now consumes v2 directly with UUID → full_name resolution and path-segment encoding for slashes. v2 failure gracefully degrades to v1 list-based fallback.
 
 ### Changed
 
@@ -223,7 +223,7 @@ A complete project-isolated platform for discovering, tagging, and deep-reviewin
   - New `POST /api/context/resolve` endpoint with exact/prefix/auto-create matching strategies
   - `session_bootstrap.py` detects unregistered directories and injects registration prompt to Leader (non-blocking)
   - New `dismiss_project_registration(cwd)` MCP tool — users can opt out; persisted to `~/.claude/data/ai-team-os/dismissed_projects.json`
-  - Fixes the bug where new project directories (e.g., `靖安笔试`, `repo-insight`) were never registered until manually triggered
+  - Fixes the bug where new project directories (e.g., `靖安筆試`, `repo-insight`) were never registered until manually triggered
 
 ### Changed
 - **Task wall auto-sync in `workflow_reminder.py`**

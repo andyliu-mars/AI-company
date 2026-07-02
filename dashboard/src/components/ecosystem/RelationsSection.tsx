@@ -6,11 +6,11 @@ import { RELATION_TYPE_LABELS } from '@/api/ecosystem';
 import type { EcosystemRelation } from '@/api/ecosystem';
 
 interface RelationsSectionProps {
-  /** 当前仓 → 其他仓 */
+  /** 當前倉 → 其他倉 */
   outgoing: EcosystemRelation[];
-  /** 其他仓 → 当前仓 */
+  /** 其他倉 → 當前倉 */
   incoming: EcosystemRelation[];
-  /** 当前仓的 repo_full_name（用于标记自身节点） */
+  /** 當前倉的 repo_full_name（用於標記自身節點） */
   currentRepoFullName: string;
 }
 
@@ -18,7 +18,7 @@ function relationLabel(rt: string): string {
   return RELATION_TYPE_LABELS[rt] ?? rt;
 }
 
-/** 单条关联行 */
+/** 單條關聯行 */
 function RelationRow({
   relation,
   direction,
@@ -36,7 +36,7 @@ function RelationRow({
     direction === 'outgoing' ? relation.target_repo_id : relation.source_repo_id;
 
   const ArrowIcon = direction === 'outgoing' ? ArrowRight : ArrowLeft;
-  const directionLabel = direction === 'outgoing' ? '指向' : '来自';
+  const directionLabel = direction === 'outgoing' ? '指向' : '來自';
 
   return (
     <div className="flex items-center gap-2 py-1.5 text-xs border-b border-border/40 last:border-0">
@@ -56,7 +56,7 @@ function RelationRow({
           href={`https://github.com/${otherFullName}`}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`在 GitHub 打开 ${otherFullName}`}
+          aria-label={`在 GitHub 開啟 ${otherFullName}`}
           className="text-muted-foreground hover:text-primary shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
@@ -74,7 +74,7 @@ function RelationRow({
 }
 
 /**
- * 关联仓区 — 展示当前仓与其他仓的引用 / 衍生关系。
+ * 關聯倉區 — 展示當前倉與其他倉的引用 / 衍生關係。
  */
 export function RelationsSection({
   outgoing,
@@ -89,11 +89,11 @@ export function RelationsSection({
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Network className="h-4 w-4" aria-hidden="true" />
-            关联仓
+            關聯倉
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          暂无关联记录 — 标签器/深扫尚未识别到引用、衍生或替代关系。
+          暫無關聯記錄 — 標籤器/深掃尚未識別到引用、衍生或替代關係。
         </CardContent>
       </Card>
     );
@@ -104,14 +104,14 @@ export function RelationsSection({
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Network className="h-4 w-4" aria-hidden="true" />
-          关联仓 ({total})
+          關聯倉 ({total})
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {outgoing && outgoing.length > 0 && (
           <div>
             <h4 className="text-xs font-medium text-muted-foreground mb-1.5">
-              当前仓指向 ({outgoing.length})
+              當前倉指向 ({outgoing.length})
             </h4>
             <div className="space-y-0">
               {outgoing.map((rel) => (
@@ -128,7 +128,7 @@ export function RelationsSection({
         {incoming && incoming.length > 0 && (
           <div>
             <h4 className="text-xs font-medium text-muted-foreground mb-1.5">
-              被引用于 ({incoming.length})
+              被引用於 ({incoming.length})
             </h4>
             <div className="space-y-0">
               {incoming.map((rel) => (

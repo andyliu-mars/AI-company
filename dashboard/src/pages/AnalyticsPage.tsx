@@ -81,13 +81,13 @@ export function AnalyticsPage() {
     return toolUsage.reduce((a, b) => (a.count > b.count ? a : b)).tool_name;
   }, [toolUsage]);
 
-  // 计算工具最大值，用于进度条
+  // 計算工具最大值，用於進度條
   const maxToolCount = useMemo(() => {
     if (!toolUsage || toolUsage.length === 0) return 1;
     return Math.max(...toolUsage.map((tool) => tool.count), 1);
   }, [toolUsage]);
 
-  // 计算时间线最大值
+  // 計算時間線最大值
   const maxTimelineCount = useMemo(() => {
     if (!timeline || timeline.length === 0) return 1;
     return Math.max(...timeline.map((item) => item.count), 1);
@@ -155,17 +155,17 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      {/* 无团队时的提示 */}
+      {/* 無團隊時的提示 */}
       {!teamsLoading && teams.length === 0 && (
         <div className="rounded-lg border bg-muted/30 p-12 text-center">
           <p className="text-sm text-muted-foreground">{t.analytics.noTeamData}</p>
         </div>
       )}
 
-      {/* 有团队时显示内容 */}
+      {/* 有團隊時顯示內容 */}
       {(activeTeamId || effectiveTeamId === '__all__') && (
         <>
-          {/* 顶部统计卡片行 */}
+          {/* 頂部統計卡片行 */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Card size="sm">
               <CardHeader className="flex flex-row items-center justify-between pb-1">
@@ -223,9 +223,9 @@ export function AnalyticsPage() {
             </Card>
           </div>
 
-          {/* 中间两列 */}
+          {/* 中間兩列 */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {/* 工具使用分布 */}
+            {/* 工具使用分佈 */}
             <Card>
               <CardHeader>
                 <CardTitle>{t.analytics.toolDistribution}</CardTitle>
@@ -256,7 +256,7 @@ export function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            {/* Agent活跃度排行 */}
+            {/* Agent活躍度排行 */}
             <Card>
               <CardHeader>
                 <CardTitle>{t.analytics.agentRanking}</CardTitle>
@@ -300,7 +300,7 @@ export function AnalyticsPage() {
             </Card>
           </div>
 
-          {/* 活动时间线 */}
+          {/* 活動時間線 */}
           <Card>
             <CardHeader>
               <CardTitle>{t.analytics.activityTimeline}</CardTitle>
@@ -343,13 +343,13 @@ export function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* 效率指标区域 */}
+          {/* 效率指標區域 */}
           <div className="flex items-center gap-2 pt-4">
             <TrendingUp className="h-5 w-5 text-muted-foreground" />
             <h2 className="text-lg font-semibold">{t.analytics.efficiencyMetrics}</h2>
           </div>
 
-          {/* 效率统计卡片行 */}
+          {/* 效率統計卡片行 */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Card size="sm">
               <CardHeader className="flex flex-row items-center justify-between pb-1">

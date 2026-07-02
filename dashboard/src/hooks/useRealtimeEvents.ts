@@ -14,10 +14,10 @@ export function useRealtimeEvents() {
       try {
         const raw = JSON.parse(event.data as string);
 
-        // 跳过非事件消息（如ack）
+        // 跳過非事件訊息（如ack）
         if (raw.type !== 'event') return;
 
-        // 用 event_type 作为实际类型
+        // 用 event_type 作為實際型別
         const data: WSEvent = {
           type: raw.event_type ?? raw.type,
           source: raw.channel ?? '',
@@ -54,11 +54,11 @@ export function useRealtimeEvents() {
           void queryClient.invalidateQueries({ queryKey: ['project-task-wall'] });
         }
         if (t.startsWith('cc.')) {
-          // CC hook事件：刷新agents和teams（可能有auto-created agent）
+          // CC hook事件：重新整理agents和teams（可能有auto-created agent）
           void queryClient.invalidateQueries({ queryKey: ['teams'] });
           void queryClient.invalidateQueries({ queryKey: ['activities'] });
         }
-        // 所有事件都应刷新事件列表
+        // 所有事件都應重新整理事件列表
         void queryClient.invalidateQueries({ queryKey: ['events'] });
       } catch {
         // ignore malformed messages

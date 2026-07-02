@@ -13,7 +13,9 @@ router = APIRouter(prefix="/api/agents-config", tags=["agents-config"])
 
 # Directories to scan for agent templates
 _HOME_AGENTS_DIR = Path.home() / ".claude" / "agents"
-_PLUGIN_AGENTS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / "plugin" / "agents"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+_PLUGIN_AGENTS_DIR = _PROJECT_ROOT / "plugin" / "agents"
+_PROJECT_AGENTS_DIR = _PROJECT_ROOT / ".claude" / "agents"
 
 
 def _parse_frontmatter(content: str) -> tuple[dict, str]:
@@ -108,21 +110,27 @@ def _build_content(original_meta: dict, updates: dict, prompt: str) -> str:
 
 
 def _scan_templates() -> list[dict[str, Any]]:
-    """Scan both directories; ~/.claude/agents/ takes priority over plugin/agents/."""
-    # Collect plugin templates first
+    """Scan all three directories; project .claude/agents/ > ~/.claude/agents/ > plugin/agents/."""
+    # Collect plugin templates first (lowest priority — read-only defaults)
     plugin_files: dict[str, Path] = {}
     if _PLUGIN_AGENTS_DIR.exists():
         for f in sorted(_PLUGIN_AGENTS_DIR.glob("*.md")):
             plugin_files[f.name] = f
 
-    # Home dir overrides plugin dir
+    # Home dir overrides plugin dir (user-global overrides)
     home_files: dict[str, Path] = {}
     if _HOME_AGENTS_DIR.exists():
         for f in sorted(_HOME_AGENTS_DIR.glob("*.md")):
             home_files[f.name] = f
 
-    # Merge: home takes priority
-    all_files: dict[str, Path] = {**plugin_files, **home_files}
+    # Project dir overrides both (project-specific templates)
+    project_files: dict[str, Path] = {}
+    if _PROJECT_AGENTS_DIR.exists():
+        for f in sorted(_PROJECT_AGENTS_DIR.glob("*.md")):
+            project_files[f.name] = f
+
+    # Merge: project takes highest priority
+    all_files: dict[str, Path] = {**plugin_files, **home_files, **project_files}
 
     results: list[dict[str, Any]] = []
     for filename, path in sorted(all_files.items()):
@@ -168,14 +176,21 @@ async def update_agent_template(filename: str, body: AgentTemplateUpdate) -> dic
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     # Read existing file to preserve unknown frontmatter fields (skills, tools, etc.)
+    # Priority for locating the source file: project > home > plugin (matches _scan_templates)
+    project_path = _PROJECT_AGENTS_DIR / filename
     home_path = _HOME_AGENTS_DIR / filename
     plugin_path = _PLUGIN_AGENTS_DIR / filename
 
+    if project_path.exists():
+        source_path = project_path
+    elif home_path.exists():
+        source_path = home_path
+    else:
+        source_path = plugin_path
+
     original_meta: dict = {}
-    if home_path.exists():
-        original_meta, _ = _parse_frontmatter(home_path.read_text(encoding="utf-8"))
-    elif plugin_path.exists():
-        original_meta, _ = _parse_frontmatter(plugin_path.read_text(encoding="utf-8"))
+    if source_path.exists():
+        original_meta, _ = _parse_frontmatter(source_path.read_text(encoding="utf-8"))
 
     updates = {
         "name": body.name,
@@ -185,9 +200,11 @@ async def update_agent_template(filename: str, body: AgentTemplateUpdate) -> dic
     }
     new_content = _build_content(original_meta, updates, body.prompt)
 
-    # Write only to ~/.claude/agents/ — plugin/agents/ is read-only source of defaults
-    _HOME_AGENTS_DIR.mkdir(parents=True, exist_ok=True)
-    home_path.write_text(new_content, encoding="utf-8")
+    # Write back to wherever the template actually lives; new plugin-only
+    # overrides fall back to ~/.claude/agents/ since plugin/agents/ is read-only.
+    target_path = source_path if source_path in (project_path, home_path) else home_path
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(new_content, encoding="utf-8")
 
     return {
         "data": {
@@ -198,5 +215,5 @@ async def update_agent_template(filename: str, body: AgentTemplateUpdate) -> dic
             "color": body.color,
             "prompt": body.prompt,
         },
-        "written_to": [str(home_path)],
+        "written_to": [str(target_path)],
     }

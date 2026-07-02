@@ -41,8 +41,8 @@ const DEFAULTS: FormState = {
 };
 
 /**
- * 项目级 ecosystem 配置面板（v1.5.0-E §8.4 / 决策 12.1）。
- * 嵌入到 ProjectDetailPage 作为 "Ecosystem 设置" tab。
+ * 專案級 ecosystem 配置面板（v1.5.0-E §8.4 / 決策 12.1）。
+ * 嵌入到 ProjectDetailPage 作為 "Ecosystem 設定" tab。
  */
 export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProps) {
   const { data, isLoading, error } = useEcosystemProjectSettings(projectId);
@@ -53,7 +53,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
   const [languageInput, setLanguageInput] = useState('');
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
-  // 数据加载后填充表单
+  // 資料載入後填充表單
   useEffect(() => {
     if (data) {
       setForm({
@@ -117,7 +117,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
         <CardContent className="p-4 flex items-start gap-2 text-destructive">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
           <div className="text-sm">
-            <p className="font-medium">加载项目设置失败</p>
+            <p className="font-medium">載入專案設定失敗</p>
             <p className="text-xs mt-1 opacity-80">{error.message}</p>
           </div>
         </CardContent>
@@ -130,17 +130,17 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Settings2 className="h-4 w-4" aria-hidden="true" />
-          Ecosystem 设置
+          Ecosystem 設定
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          项目级生态仓配置：阈值、活跃集大小、刷新周期、关注 topic/语言。修改后影响该项目的扫描/浅扫行为。
+          專案級生態倉配置：閾值、活躍集大小、重新整理週期、關注 topic/語言。修改後影響該專案的掃描/淺掃行為。
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* 数值字段网格 */}
+        {/* 數值欄位網格 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <Label htmlFor="min-stars">入档 stars 阈值</Label>
+            <Label htmlFor="min-stars">入檔 stars 閾值</Label>
             <Input
               id="min-stars"
               type="number"
@@ -151,11 +151,11 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
                 setForm({ ...form, min_stars: Math.max(0, Number(e.target.value) || 0) })
               }
             />
-            <p className="text-[10px] text-muted-foreground">stars 低于此值的仓不入档</p>
+            <p className="text-[10px] text-muted-foreground">stars 低於此值的倉不入檔</p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="top-n">活跃集大小 (top_n)</Label>
+            <Label htmlFor="top-n">活躍集大小 (top_n)</Label>
             <Input
               id="top-n"
               type="number"
@@ -167,11 +167,11 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
                 setForm({ ...form, top_n: Math.max(1, Number(e.target.value) || 1) })
               }
             />
-            <p className="text-[10px] text-muted-foreground">按 stars 排序前 N 个进入活跃集</p>
+            <p className="text-[10px] text-muted-foreground">按 stars 排序前 N 個進入活躍集</p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="refresh-interval">自动检测周期（天）</Label>
+            <Label htmlFor="refresh-interval">自動檢測週期（天）</Label>
             <Input
               id="refresh-interval"
               type="number"
@@ -187,15 +187,15 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
               }
             />
             <p className="text-[10px] text-muted-foreground">
-              自动检测周期（每 N 天 cron 触发新批次扫描，检测新增库 + 已入档库的更新）
+              自動檢測週期（每 N 天 cron 觸發新批次掃描，檢測新增庫 + 已入檔庫的更新）
             </p>
             <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-              提示：这是 cron 调度周期，不是过期阈值。老库重扫由 GitHub repo 的 push 时间决定（pushed_at &gt; last_shallow_refreshed_at）
+              提示：這是 cron 排程週期，不是過期閾值。老庫重掃由 GitHub repo 的 push 時間決定（pushed_at &gt; last_shallow_refreshed_at）
             </p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="shallow-conc">浅扫并发</Label>
+            <Label htmlFor="shallow-conc">淺掃併發</Label>
             <Input
               id="shallow-conc"
               type="number"
@@ -209,11 +209,11 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
                 })
               }
             />
-            <p className="text-[10px] text-muted-foreground">Stage 0 worker 并发数（rate limit 调整）</p>
+            <p className="text-[10px] text-muted-foreground">Stage 0 worker 併發數（rate limit 調整）</p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="deep-conc">深扫并发</Label>
+            <Label htmlFor="deep-conc">深掃併發</Label>
             <Input
               id="deep-conc"
               type="number"
@@ -227,11 +227,11 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
                 })
               }
             />
-            <p className="text-[10px] text-muted-foreground">Stage 1+ batch 派遣并发数</p>
+            <p className="text-[10px] text-muted-foreground">Stage 1+ batch 派遣併發數</p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="alert-max-new">告警阈值：单次新增上限</Label>
+            <Label htmlFor="alert-max-new">告警閾值：單次新增上限</Label>
             <Input
               id="alert-max-new"
               type="number"
@@ -246,11 +246,11 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
                 })
               }
             />
-            <p className="text-[10px] text-muted-foreground">单次扫描新增仓超过此数时触发告警（不提交结果）</p>
+            <p className="text-[10px] text-muted-foreground">單次掃描新增倉超過此數時觸發告警（不提交結果）</p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="auto-shallow">入档自动浅扫</Label>
+            <Label htmlFor="auto-shallow">入檔自動淺掃</Label>
             <div className="flex items-center gap-2 pt-2">
               <Switch
                 id="auto-shallow"
@@ -260,7 +260,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
                 }
               />
               <span className="text-xs text-muted-foreground">
-                {form.auto_shallow_on_archive ? '自动派遣 Stage 0' : '关闭，仅按需触发'}
+                {form.auto_shallow_on_archive ? '自動派遣 Stage 0' : '關閉，僅按需觸發'}
               </span>
             </div>
           </div>
@@ -268,7 +268,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
 
         {/* focus_topics */}
         <div className="space-y-1">
-          <Label htmlFor="topic-input">关注 topics（白名单，空=全 topic）</Label>
+          <Label htmlFor="topic-input">關注 topics（白名單，空=全 topic）</Label>
           <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2">
             {form.focus_topics.map((t) => (
               <Badge
@@ -276,7 +276,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
                 variant="secondary"
                 className="gap-1 cursor-pointer"
                 onClick={() => removeTopic(t)}
-                title="点击移除"
+                title="點選移除"
               >
                 <TagIcon className="h-3 w-3" aria-hidden="true" />
                 {t} ×
@@ -285,7 +285,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
             <Input
               id="topic-input"
               className="flex-1 min-w-[120px] border-0 shadow-none focus-visible:ring-0 p-0 h-7"
-              placeholder={form.focus_topics.length === 0 ? '例：claude-code / mcp / agent-framework' : '继续添加…'}
+              placeholder={form.focus_topics.length === 0 ? '例：claude-code / mcp / agent-framework' : '繼續新增…'}
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
               onKeyDown={(e) => {
@@ -300,7 +300,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
 
         {/* focus_languages */}
         <div className="space-y-1">
-          <Label htmlFor="language-input">关注语言（白名单，空=全语言）</Label>
+          <Label htmlFor="language-input">關注語言（白名單，空=全語言）</Label>
           <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2">
             {form.focus_languages.map((l) => (
               <Badge
@@ -308,7 +308,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
                 variant="secondary"
                 className="gap-1 cursor-pointer"
                 onClick={() => removeLanguage(l)}
-                title="点击移除"
+                title="點選移除"
               >
                 <TagIcon className="h-3 w-3" aria-hidden="true" />
                 {l} ×
@@ -317,7 +317,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
             <Input
               id="language-input"
               className="flex-1 min-w-[120px] border-0 shadow-none focus-visible:ring-0 p-0 h-7"
-              placeholder={form.focus_languages.length === 0 ? '例：Python / TypeScript / Rust' : '继续添加…'}
+              placeholder={form.focus_languages.length === 0 ? '例：Python / TypeScript / Rust' : '繼續新增…'}
               value={languageInput}
               onChange={(e) => setLanguageInput(e.target.value)}
               onKeyDown={(e) => {
@@ -330,7 +330,7 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
           </div>
         </div>
 
-        {/* 保存条 */}
+        {/* 儲存條 */}
         <div className="flex items-center justify-between pt-2 border-t">
           <div className="text-xs text-muted-foreground">
             {data?.updated_at && (
@@ -341,19 +341,19 @@ export function EcosystemSettingsPanel({ projectId }: EcosystemSettingsPanelProp
             {savedAt && (
               <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                已保存
+                已儲存
               </span>
             )}
             <Button onClick={onSave} disabled={update.isPending}>
               {update.isPending ? (
                 <>
                   <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
-                  保存中…
+                  儲存中…
                 </>
               ) : (
                 <>
                   <Save className="mr-1 h-4 w-4" aria-hidden="true" />
-                  保存设置
+                  儲存設定
                 </>
               )}
             </Button>

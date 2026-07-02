@@ -5,7 +5,7 @@
 <!-- Logo placeholder -->
 <!-- ![AI Team OS Logo](docs/assets/logo.png) -->
 
-### 你的 AI 编程工具，停止提示就停止工作。我们的不会。
+### 你的 AI 程式設計工具，停止提示就停止工作。我們的不會。
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
@@ -16,179 +16,179 @@
 
 ---
 
-AI Team OS 将 Claude Code 变成一家**自运转 AI 公司**。
-你是董事长，AI 是 CEO。设定方向——系统自主执行、学习、持续进化。
+AI Team OS 將 Claude Code 變成一家**自運轉 AI 公司**。
+你是董事長，AI 是 CEO。設定方向——系統自主執行、學習、持續進化。
 
 ---
 
-## 其他 AI 工具的问题
+## 其他 AI 工具的問題
 
-所有 AI 编程助手的工作模式都一样：你提问，它回答，然后停下来。你一离开，工作就停了。你回来面对的是一个空白的提示框。
+所有 AI 程式設計助手的工作模式都一樣：你提問，它回答，然後停下來。你一離開，工作就停了。你回來面對的是一個空白的提示框。
 
 AI Team OS 的工作方式不同。
 
-你晚上离开。第二天早上打开电脑，发现：
-- CEO 检查了任务墙，拿起了下一个最高优先级的任务并完成了它
-- 遇到需要你审批的阻塞点时，它挂起了那条线程，切换到了并行工作流
-- 研究部门的 Agent 扫描了三个竞品框架，发现了一个值得采用的技术
-- 一场头脑风暴会议已经召开，5 个 Agent 讨论了 4 个方案，最佳方案已经进了任务墙
+你晚上離開。第二天早上開啟電腦，發現：
+- CEO 檢查了任務牆，拿起了下一個最高優先順序的任務並完成了它
+- 遇到需要你審批的阻塞點時，它掛起了那條執行緒，切換到了並行工作流
+- 研究部門的 Agent 掃描了三個競品框架，發現了一個值得採用的技術
+- 一場頭腦風暴會議已經召開，5 個 Agent 討論了 4 個方案，最佳方案已經進了任務牆
 
-这些，你一个提示都没发。系统自己跑起来的。
+這些，你一個提示都沒發。系統自己跑起來的。
 
 ---
 
-## 它是怎么工作的
+## 它是怎麼工作的
 
-**你是董事长，AI Leader 是 CEO。**
+**你是董事長，AI Leader 是 CEO。**
 
-CEO 不等待指令。它检查任务墙，挑出最高优先级的任务，分配给对应的专业 Agent，推进执行。遇到阻塞，它切换工作流。所有计划内的工作完成后，研究部门的 Agent 会激活——扫描新技术、组织头脑风暴会议，把改进方案反馈回系统。
+CEO 不等待指令。它檢查任務牆，挑出最高優先順序的任務，分配給對應的專業 Agent，推進執行。遇到阻塞，它切換工作流。所有計劃內的工作完成後，研究部門的 Agent 會啟用——掃描新技術、組織頭腦風暴會議，把改進方案反饋回系統。
 
-每次失败都让系统变得更聪明。"失败炼金术"提取防御规则，为未来的 Agent 生成培训案例，提交改进提案——系统对自身的错误产生抗体。
+每次失敗都讓系統變得更聰明。"失敗鍊金術"提取防禦規則，為未來的 Agent 生成培訓案例，提交改進提案——系統對自身的錯誤產生抗體。
 
 ---
 
 ## 核心能力
 
-### 1. 自主运转（核心卖点）
+### 1. 自主運轉（核心賣點）
 
-CEO 从不空闲。它按任务墙优先级持续推进工作：
+CEO 從不空閒。它按任務牆優先順序持續推進工作：
 
-- 一个任务完成后，立即检查任务墙，拿起下一个最高优先级任务
-- 遇到需要你审批的阻塞点，挂起该线程，切换到并行工作流
-- 批量汇总所有战略问题，等你回来时统一汇报——不为每个战术决策打断你
-- 卡死检测：循环停滞时，系统主动暴露阻塞原因，而不是原地空转
+- 一個任務完成後，立即檢查任務牆，拿起下一個最高優先順序任務
+- 遇到需要你審批的阻塞點，掛起該執行緒，切換到並行工作流
+- 批次彙總所有戰略問題，等你回來時統一彙報——不為每個戰術決策打斷你
+- 卡死檢測：迴圈停滯時，系統主動暴露阻塞原因，而不是原地空轉
 
-### 2. 自我进化
+### 2. 自我進化
 
-系统不只是执行——它在进化：
+系統不只是執行——它在進化：
 
-- **研发循环**：研究 Agent 扫描竞品、新框架和社区工具。研究结果提交到头脑风暴会议，Agent 之间相互挑战辩论。结论变成实施计划进入任务墙。
-- **失败炼金术**：每次任务失败都触发根因提取、归类，并产出三类输出：
-  - *抗体* — 失败经验存入团队记忆，防止同类错误重现
-  - *疫苗* — 高频失败模式转化为任务前预警
-  - *催化剂* — 失败分析结果注入 Agent 的 system prompt，改善下次执行
+- **研發迴圈**：研究 Agent 掃描競品、新框架和社群工具。研究結果提交到頭腦風暴會議，Agent 之間相互挑戰辯論。結論變成實施計劃進入任務牆。
+- **失敗鍊金術**：每次任務失敗都觸發根因提取、歸類，併產出三類輸出：
+  - *抗體* — 失敗經驗存入團隊記憶，防止同類錯誤重現
+  - *疫苗* — 高頻失敗模式轉化為任務前預警
+  - *催化劑* — 失敗分析結果注入 Agent 的 system prompt，改善下次執行
 
-### 3. 团队协作（不是单 Agent）
+### 3. 團隊協作（不是單 Agent）
 
-不是一个 Agent，而是一个结构化组织：
+不是一個 Agent，而是一個結構化組織：
 
-- **25 个专业 Agent 模板**（23 个基础 + 2 个辩论角色），含推荐引擎——工程/测试/研究/管理，开箱即用
-- **8 种结构化会议模板**，支持关键词自动匹配，基于六顶思考帽、DACI 框架和 Design Sprint 方法论
-- **部门分组管理**——工程部/测试部/研究部，支持跨部门协作
-- 每次会议必须产出可执行结论，"讨论了但没决定"不是一个有效结果
+- **25 個專業 Agent 模板**（23 個基礎 + 2 個辯論角色），含推薦引擎——工程/測試/研究/管理，開箱即用
+- **8 種結構化會議模板**，支援關鍵詞自動匹配，基於六頂思考帽、DACI 框架和 Design Sprint 方法論
+- **部門分組管理**——工程部/測試部/研究部，支援跨部門協作
+- 每次會議必須產出可執行結論，"討論了但沒決定"不是一個有效結果
 
 ### 4. 完全透明
 
-没有黑盒：
+沒有黑盒：
 
-- **决策驾驶舱**：事件流 + 决策时间线 + 意图透视，每个决策有迹可循
-- **活动追踪**：实时展示每个 Agent 的状态和当前任务
-- **What-If 分析器**：提交前对比多个方案，支持路径模拟和推荐
+- **決策駕駛艙**：事件流 + 決策時間線 + 意圖透視，每個決策有跡可循
+- **活動追蹤**：即時展示每個 Agent 的狀態和當前任務
+- **What-If 分析器**：提交前對比多個方案，支援路徑模擬和推薦
 
-### 5. 工作流管道编排
+### 5. 工作流管道編排
 
-每个任务都遵循结构化、强制执行的工作流——告别临时性执行：
+每個任務都遵循結構化、強制執行的工作流——告別臨時性執行：
 
-- **7 种管道模板**：`feature`（Research→Design→Implement→Review→Test→Deploy）、`bugfix`、`research`、`refactor`、`quick-fix`、`spike`、`hotfix`
-- **通过 `task_type` 自动挂载**：在 `task_create` 中传入 `task_type="feature"`，管道自动创建
-- **渐进式强制**：hook 检测无管道任务——软提醒 → 强提醒 → 第三次硬阻断（`exit 2`）
-- **自动阶段推进**：每个阶段推荐最适合的 Agent 模板；`pipeline_advance` 自动推进到下一阶段
-- **最轻量逃生通道**：`quick-fix`（仅 Implement→Test）适用于真正的小改动
-- **Channel 通讯系统**：`team:` / `project:` / `global` 三种频道 + `@mention` 支持
-- **辩论模式**：4 轮结构化辩论（Advocate→Critic→Response→Judge）+ `debate_start` / `debate_code_review`
-- **Git 自动化**：`git_auto_commit` / `git_create_pr` / `git_status_check` 简化版本控制
-- **语义缓存**：BM25 + Jaccard 相似度匹配，JSON 持久化，TTL 过期
-- **执行模式记忆**：成功/失败模式记录 + BM25 检索 + subagent 上下文注入
+- **7 種管道模板**：`feature`（Research→Design→Implement→Review→Test→Deploy）、`bugfix`、`research`、`refactor`、`quick-fix`、`spike`、`hotfix`
+- **通過 `task_type` 自動掛載**：在 `task_create` 中傳入 `task_type="feature"`，管道自動建立
+- **漸進式強制**：hook 檢測無管道任務——軟提醒 → 強提醒 → 第三次硬阻斷（`exit 2`）
+- **自動階段推進**：每個階段推薦最適合的 Agent 模板；`pipeline_advance` 自動推進到下一階段
+- **最輕量逃生通道**：`quick-fix`（僅 Implement→Test）適用於真正的小改動
+- **Channel 通訊系統**：`team:` / `project:` / `global` 三種頻道 + `@mention` 支援
+- **辯論模式**：4 輪結構化辯論（Advocate→Critic→Response→Judge）+ `debate_start` / `debate_code_review`
+- **Git 自動化**：`git_auto_commit` / `git_create_pr` / `git_status_check` 簡化版本控制
+- **語義快取**：BM25 + Jaccard 相似度匹配，JSON 持久化，TTL 過期
+- **執行模式記憶**：成功/失敗模式記錄 + BM25 檢索 + subagent 上下文注入
 
-### 6. 安全与行为强制
+### 6. 安全與行為強制
 
-内置护栏，系统在无人监督时也不会产生意外：
+內建護欄，系統在無人監督時也不會產生意外：
 
-- **Guardrails L1**：7 种危险模式检测 + PII 警告 + `InputGuardrailMiddleware`
-- **本地 Agent 拦截**：所有非只读 Agent 必须声明 `team_name`/`name`，防止游离后台 Agent
-- **S1 安全规则**：正则扫描拦截破坏性命令（rm -rf、force push、硬编码密钥），覆盖大写标志和 heredoc 模式
-- **四层防线规则体系**：48+ 条规则，覆盖工作流、委派、会话和安全层
-- **文件锁/工作区隔离**：acquire/release/check/list + TTL=300s + hook 警告，防止并发编辑
-- **Agent 信任评分**：trust_score (0-1) 随任务成功/失败自动调整，加权到 auto_assign
-- **Agent Watchdog 心跳**：`agent_heartbeat` / `watchdog_check`，5 分钟 TTL，自动检测卡死或崩溃的 Agent
-- **SRE 错误预算模型**：GREEN/YELLOW/ORANGE/RED 四级响应，滑动窗口 20 任务，`error_budget_status` / `error_budget_update` 工具
-- **完成验证协议**：`verify_completion` 检查 task 状态 + memo 存在，防止幻觉"已完成"报告
-- **生态集成配方**：4 个预设配方（GitHub / Slack / Linear / 全栈团队），通过 `ecosystem_recipes()` 工具查询
-- **`find_skill` 三层渐进发现**：快速推荐 → 分类浏览 → 完整详情，降低工具调用开销
+- **Guardrails L1**：7 種危險模式檢測 + PII 警告 + `InputGuardrailMiddleware`
+- **本地 Agent 攔截**：所有非只讀 Agent 必須宣告 `team_name`/`name`，防止游離後臺 Agent
+- **S1 安全規則**：正則掃描攔截破壞性命令（rm -rf、force push、硬編碼金鑰），覆蓋大寫標誌和 heredoc 模式
+- **四層防線規則體系**：48+ 條規則，覆蓋工作流、委派、會話和安全層
+- **檔案鎖/工作區隔離**：acquire/release/check/list + TTL=300s + hook 警告，防止併發編輯
+- **Agent 信任評分**：trust_score (0-1) 隨任務成功/失敗自動調整，加權到 auto_assign
+- **Agent Watchdog 心跳**：`agent_heartbeat` / `watchdog_check`，5 分鐘 TTL，自動檢測卡死或崩潰的 Agent
+- **SRE 錯誤預算模型**：GREEN/YELLOW/ORANGE/RED 四級響應，滑動視窗 20 任務，`error_budget_status` / `error_budget_update` 工具
+- **完成驗證協議**：`verify_completion` 檢查 task 狀態 + memo 存在，防止幻覺"已完成"報告
+- **生態整合配方**：4 個預設配方（GitHub / Slack / Linear / 全棧團隊），通過 `ecosystem_recipes()` 工具查詢
+- **`find_skill` 三層漸進發現**：快速推薦 → 分類瀏覽 → 完整詳情，降低工具呼叫開銷
 
-### 7. 零额外成本
+### 7. 零額外成本
 
-100% 运行在你现有的 Claude Code 订阅套餐内：
+100% 執行在你現有的 Claude Code 訂閱套餐內：
 
-- 不调用外部 API，不烧额外 token
-- MCP 工具、Hooks 和 Agent 模板全部本地运行
-- 完全复用你的 CC 套餐
+- 不呼叫外部 API，不燒額外 token
+- MCP 工具、Hooks 和 Agent 模板全部本地執行
+- 完全複用你的 CC 套餐
 
-### 8. 生态研究平台（v1.5.0 渐进式漏斗）
+### 8. 生態研究平臺（v1.5.0 漸進式漏斗）
 
-项目隔离的**知识库**，研究产物随时间累加。每个仓走过 4 阶段，token 高效触发 + append-only 历史：
+專案隔離的**知識庫**，研究產物隨時間累加。每個倉走過 4 階段，token 高效觸發 + append-only 歷史：
 
-- **Stage 0 — 入档即浅扫**：新入档仓自动派 `ai-engineer` 出 200-400 字总结（核心功能 / 定位 / 优势）。8 类失败处理 + **自学习机制**（同类失败 ≥ 3 仓 → `pattern_record`，未来 agent 通过 `pattern_search` 读 lessons 优化策略）。Worker 自动复活删库/私密恢复 200 的仓
-- **Stage 1 — 按需架构分析**：用户挑研究方向（"memory_system"）→ 批量派 `backend-architect` 读架构关键文件
-- **Stage 2 — 多角度辩论**：触发现有 `debate_start`（**不内建辩论引擎，复用会议系统**）。会议→生态库反向写入 hook 提醒 Leader 把辩论结论回写到 deep_review
-- **Stage 3 — 参考 / 集成标记**：`mark_as_reference` 加 tag 便于未来快速召回（避免重复深扫）；`start_integration` 触发现有 `task_create` 启动实际集成任务
-- **项目可定制阈值**：每个项目独立设 `min_stars` / `top_n` / `refresh_interval_days` / `focus_topics`。AI Team OS 默认：stars ≥ 5K，top 200，关注 claude-code / mcp / agent-framework
-- **活跃/全量双视图**：数据**永不删除**。stars 跌出阈值的仓保留（仅 `is_active=False`）；涨回自动激活 + 重新入队 Stage 0
-- **Dashboard `/ecosystem`**：列表带 stage 徽章 + 研究历程 timeline + 项目筛选下拉（按项目查看生态库）+ 候选筛选页 (`/ecosystem/research`) + 项目设置 tab
-- **30+ MCP 工具 / 15+ REST 端点 / SQLite append-only 历史快照**
-
----
-
-## 它构建了自己
-
-AI Team OS 管理了自身的开发过程：
-
-- 组织了 5 场多 Agent 辩论式头脑风暴创新会议
-- 对 CrewAI、AutoGen、LangGraph 和 Devin 进行了竞品分析
-- 完成了 5 个重大创新功能方向的 67 个任务
-- 生成了 14 份设计文档，共 10,000+ 行
-
-这个为你的项目构建东西的系统……构建了它自己。
+- **Stage 0 — 入檔即淺掃**：新入檔倉自動派 `ai-engineer` 出 200-400 字總結（核心功能 / 定位 / 優勢）。8 類失敗處理 + **自學習機制**（同類失敗 ≥ 3 倉 → `pattern_record`，未來 agent 通過 `pattern_search` 讀 lessons 最佳化策略）。Worker 自動復活刪庫/私密恢復 200 的倉
+- **Stage 1 — 按需架構分析**：使用者挑研究方向（"memory_system"）→ 批次派 `backend-architect` 讀架構關鍵檔案
+- **Stage 2 — 多角度辯論**：觸發現有 `debate_start`（**不內建辯論引擎，複用會議系統**）。會議→生態庫反向寫入 hook 提醒 Leader 把辯論結論回寫到 deep_review
+- **Stage 3 — 參考 / 整合標記**：`mark_as_reference` 加 tag 便於未來快速召回（避免重複深掃）；`start_integration` 觸發現有 `task_create` 啟動實際整合任務
+- **專案可定製閾值**：每個專案獨立設 `min_stars` / `top_n` / `refresh_interval_days` / `focus_topics`。AI Team OS 預設：stars ≥ 5K，top 200，關注 claude-code / mcp / agent-framework
+- **活躍/全量雙檢視**：資料**永不刪除**。stars 跌出閾值的倉保留（僅 `is_active=False`）；漲回自動啟用 + 重新入隊 Stage 0
+- **Dashboard `/ecosystem`**：列表帶 stage 徽章 + 研究歷程 timeline + 專案篩選下拉（按專案檢視生態庫）+ 候選篩選頁 (`/ecosystem/research`) + 專案設定 tab
+- **30+ MCP 工具 / 15+ REST 端點 / SQLite append-only 歷史快照**
 
 ---
 
-## 与主流方案对比
+## 它構建了自己
 
-| 维度 | AI Team OS | CrewAI | AutoGen | LangGraph | Devin |
+AI Team OS 管理了自身的開發過程：
+
+- 組織了 5 場多 Agent 辯論式頭腦風暴創新會議
+- 對 CrewAI、AutoGen、LangGraph 和 Devin 進行了競品分析
+- 完成了 5 個重大創新功能方向的 67 個任務
+- 生成了 14 份設計文件，共 10,000+ 行
+
+這個為你的專案構建東西的系統……構建了它自己。
+
+---
+
+## 與主流方案對比
+
+| 維度 | AI Team OS | CrewAI | AutoGen | LangGraph | Devin |
 |------|-----------|--------|---------|-----------|-------|
-| **定位** | CC 增强层 OS | 独立框架 | 独立框架 | 工作流引擎 | 独立 AI 工程师 |
-| **集成方式** | MCP 协议接入 CC | 独立 Python 运行 | 独立 Python 运行 | 独立 Python 运行 | SaaS 独立产品 |
-| **自主运转** | 持续循环，从不空闲 | 逐任务执行 | 逐任务执行 | 工作流驱动 | 有限 |
-| **会议系统** | 8 种结构化模板，支持关键词自动匹配 | 无 | 有限 | 无 | 无 |
-| **失败学习** | 失败炼金术（抗体/疫苗/催化剂） | 无 | 无 | 无 | 有限 |
-| **决策透明度** | 决策驾驶舱 + 时间线 | 无 | 有限 | 有限 | 黑盒 |
-| **工作流编排** | 7 种管道模板 + 渐进式强制 | 无 | 无 | 手动 | 无 |
-| **规则体系** | 四层防线（48+ 条）+ 行为强制 | 有限 | 有限 | 无 | 有限 |
-| **Agent 模板** | 25 个开箱即用 + 推荐引擎 | 内置角色 | 内置角色 | 无 | 无 |
-| **Dashboard** | React 19 可视化 | 商业版 | 无 | 无 | 有 |
-| **开源** | MIT | Apache 2.0 | MIT | MIT | 否 |
-| **Claude Code 原生** | 是，深度集成 | 否 | 否 | 否 | 否 |
-| **额外成本** | $0（仅 CC 订阅） | 需 API 费用 | 需 API 费用 | 需 API 费用 | $500+/月 |
+| **定位** | CC 增強層 OS | 獨立框架 | 獨立框架 | 工作流引擎 | 獨立 AI 工程師 |
+| **整合方式** | MCP 協議接入 CC | 獨立 Python 執行 | 獨立 Python 執行 | 獨立 Python 執行 | SaaS 獨立產品 |
+| **自主運轉** | 持續迴圈，從不空閒 | 逐任務執行 | 逐任務執行 | 工作流驅動 | 有限 |
+| **會議系統** | 8 種結構化模板，支援關鍵詞自動匹配 | 無 | 有限 | 無 | 無 |
+| **失敗學習** | 失敗鍊金術（抗體/疫苗/催化劑） | 無 | 無 | 無 | 有限 |
+| **決策透明度** | 決策駕駛艙 + 時間線 | 無 | 有限 | 有限 | 黑盒 |
+| **工作流編排** | 7 種管道模板 + 漸進式強制 | 無 | 無 | 手動 | 無 |
+| **規則體系** | 四層防線（48+ 條）+ 行為強制 | 有限 | 有限 | 無 | 有限 |
+| **Agent 模板** | 25 個開箱即用 + 推薦引擎 | 內建角色 | 內建角色 | 無 | 無 |
+| **Dashboard** | React 19 視覺化 | 商業版 | 無 | 無 | 有 |
+| **開源** | MIT | Apache 2.0 | MIT | MIT | 否 |
+| **Claude Code 原生** | 是，深度整合 | 否 | 否 | 否 | 否 |
+| **額外成本** | $0（僅 CC 訂閱） | 需 API 費用 | 需 API 費用 | 需 API 費用 | $500+/月 |
 
 ---
 
-## 系统架构
+## 系統架構
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     用户（董事长）                                │
+│                     使用者（董事長）                                │
 │                         │                                       │
 │                         ▼                                       │
 │                   Leader（CEO）                                  │
 │            ┌────────────┼────────────┐                          │
 │            ▼            ▼            ▼                          │
-│       Agent模板      任务墙        会议系统                        │
-│      (25个角色)    Loop引擎      (8种模板)                         │
+│       Agent模板      任務牆        會議系統                        │
+│      (25個角色)    Loop引擎      (8種模板)                         │
 │            │            │            │                          │
 │            └────────────┼────────────┘                          │
 │                         ▼                                       │
 │              ┌──────────────────────┐                           │
-│              │   OS 增强层           │                           │
+│              │   OS 增強層           │                           │
 │              │  ┌──────────────┐    │                           │
 │              │  │  MCP Server  │    │                           │
 │              │  │ (107 tools)  │    │                           │
@@ -213,600 +213,600 @@ AI Team OS 管理了自身的开发过程：
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 五层技术架构
+### 五層技術架構
 
 ```
-Layer 5: Web Dashboard    — React 19 + TypeScript + Shadcn UI（18 个页面）
+Layer 5: Web Dashboard    — React 19 + TypeScript + Shadcn UI（18 個頁面）
 Layer 4: CLI + REST API   — Typer + FastAPI
 Layer 3: Team Orchestrator — LangGraph StateGraph
 Layer 2: Memory Manager   — Mem0 / File fallback
-Layer 1: Storage          — SQLite（开发环境）/ PostgreSQL（生产环境）+ Alembic 迁移
+Layer 1: Storage          — SQLite（開發環境）/ PostgreSQL（生產環境）+ Alembic 遷移
 ```
 
-### Hook 系统（9 个生命周期事件 — CC 与 OS 的桥梁）
+### Hook 系統（9 個生命週期事件 — CC 與 OS 的橋樑）
 
 ```
-SessionStart     → session_bootstrap.py          — 注入Leader简报 + 5条核心规则 + 团队状态
-SessionEnd       → send_event.py                 — 记录会话结束事件
-SubagentStart    → inject_subagent_context.py    — 注入子Agent OS规则（2-Action等）
-SubagentStop     → send_event.py                 — 记录子Agent生命周期事件
-PreToolUse       → workflow_reminder.py          — 工作流提醒 + 安全护栏
-PostToolUse      → send_event.py                 — 事件转发到 OS API
-UserPromptSubmit → context_monitor.py            — 上下文使用率监控
-Stop             → send_event.py                 — 记录停止事件
-PreCompact       → pre_compact_save.py           — 上下文压缩前自动保存进度
+SessionStart     → session_bootstrap.py          — 注入Leader簡報 + 5條核心規則 + 團隊狀態
+SessionEnd       → send_event.py                 — 記錄會話結束事件
+SubagentStart    → inject_subagent_context.py    — 注入子Agent OS規則（2-Action等）
+SubagentStop     → send_event.py                 — 記錄子Agent生命週期事件
+PreToolUse       → workflow_reminder.py          — 工作流提醒 + 安全護欄
+PostToolUse      → send_event.py                 — 事件轉發到 OS API
+UserPromptSubmit → context_monitor.py            — 上下文使用率監控
+Stop             → send_event.py                 — 記錄停止事件
+PreCompact       → pre_compact_save.py           — 上下文壓縮前自動儲存進度
 ```
 
 ---
 
-## 快速安装（AI 辅助）
+## 快速安裝（AI 輔助）
 
-告诉 Claude Code：
+告訴 Claude Code：
 > "Read https://github.com/CronusL-1141/AI-company/blob/master/INSTALL.md and follow the instructions to install AI Team OS"
 
-Claude Code 会自动读取安装指南并引导你完成配置。
+Claude Code 會自動讀取安裝指南並引導你完成配置。
 
 ---
 
-> **重要提示**：请将 AI Team OS 安装到系统 Python，而不是项目虚拟环境中。
-> 如果安装在 venv 中，AI Team OS 将只在该特定项目中可用。
-> 如果当前已激活 venv，请先执行 `deactivate`，再进行安装。
+> **重要提示**：請將 AI Team OS 安裝到系統 Python，而不是專案虛擬環境中。
+> 如果安裝在 venv 中，AI Team OS 將只在該特定專案中可用。
+> 如果當前已啟用 venv，請先執行 `deactivate`，再進行安裝。
 
 ---
 
-## 快速开始
+## 快速開始
 
 ### 前置要求
 
 - Python >= 3.11
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)（`pip install uv`）
-- Claude Code（需要 MCP 支持）
-- Node.js >= 20（Dashboard 前端，可选）
+- Claude Code（需要 MCP 支援）
+- Node.js >= 20（Dashboard 前端，可選）
 
-> **国内用户提示**：如果访问 GitHub 较慢，建议配置代理或使用 Gitee 镜像（如有）。
+> **國內使用者提示**：如果訪問 GitHub 較慢，建議配置代理或使用 Gitee 映象（如有）。
 
-### 方式 A：Plugin 安装（推荐）
+### 方式 A：Plugin 安裝（推薦）
 
 ```bash
-# 安装 uv（Python 包运行器，MCP 服务器需要）
+# 安裝 uv（Python 包執行器，MCP 伺服器需要）
 pip install uv
 
-# 添加 marketplace + 安装
+# 新增 marketplace + 安裝
 claude plugin marketplace add github:CronusL-1141/AI-company
 claude plugin install ai-team-os
 
-# 重启 Claude Code — 首次启动约 30 秒加载依赖
-# 后续启动秒级完成
+# 重啟 Claude Code — 首次啟動約 30 秒載入依賴
+# 後續啟動秒級完成
 
-# 随时更新到最新版
+# 隨時更新到最新版
 claude plugin update ai-team-os@ai-team-os
 ```
 
-> **提示**：首次启动需要约 30 秒自动配置依赖，仅此一次。后续每次启动 107 个 MCP 工具即时可用。
+> **提示**：首次啟動需要約 30 秒自動配置依賴，僅此一次。後續每次啟動 107 個 MCP 工具即時可用。
 
-### 方式 B：手动安装
+### 方式 B：手動安裝
 
 ```bash
-# Step 1: 克隆仓库
+# Step 1: 克隆倉庫
 git clone https://github.com/CronusL-1141/AI-company.git
 cd AI-company
 
-# Step 2: 安装（自动配置 MCP + Hooks + Agent 模板 + API）
+# Step 2: 安裝（自動配置 MCP + Hooks + Agent 模板 + API）
 python install.py
 
-# Step 3: 重启 Claude Code，一切自动激活
-# API 服务器在 MCP 加载时自动启动，无需手动操作
-# 验证：在 CC 中运行 → /mcp 查看 ai-team-os 工具是否挂载
+# Step 3: 重啟 Claude Code，一切自動啟用
+# API 伺服器在 MCP 載入時自動啟動，無需手動操作
+# 驗證：在 CC 中執行 → /mcp 檢視 ai-team-os 工具是否掛載
 ```
 
-### 方式 C：PyPI 安装
+### 方式 C：PyPI 安裝
 
 ```bash
 pip install ai-team-os
 python -m aiteam.scripts.install
-# 重启 Claude Code，工具自动激活
+# 重啟 Claude Code，工具自動啟用
 ```
 
-### 验证安装
+### 驗證安裝
 
 ```bash
-# 检查 OS 健康状态（API 必须已启动 — 端口可能变化，查看 api_port.txt）
+# 檢查 OS 健康狀態（API 必須已啟動 — 埠可能變化，檢視 api_port.txt）
 curl http://localhost:8000/api/health
 # 期望: {"status": "ok"}
 
-# 通过 CC 创建第一个团队
-# 在 Claude Code 中输入：
-# "帮我创建一个 web 开发团队，包含前端、后端和测试工程师"
+# 通過 CC 建立第一個團隊
+# 在 Claude Code 中輸入：
+# "幫我建立一個 web 開發團隊，包含前端、後端和測試工程師"
 ```
 
-### 启动 Dashboard（可选）
+### 啟動 Dashboard（可選）
 
 ```bash
 cd dashboard
 npm install
 npm run dev
-# 访问 http://localhost:5173
+# 訪問 http://localhost:5173
 ```
 
 ---
 
-## Dashboard 截图
+## Dashboard 截圖
 
-### 指挥中心
+### 指揮中心
 ![Command Center](docs/screenshots/dashboard-home.png)
 
-### 任务看板
+### 任務看板
 ![Task Board](docs/screenshots/task-board.png)
 
-### 项目详情 & 决策时间线
+### 專案詳情 & 決策時間線
 ![Decision Timeline](docs/screenshots/decision-timeline.png)
 
-### 会议室
+### 會議室
 ![Meeting Room](docs/screenshots/meeting-room.png)
 
-### 活动分析
+### 活動分析
 ![Analytics](docs/screenshots/analytics.png)
 
-### 事件日志
+### 事件日誌
 ![Events](docs/screenshots/events.png)
 
-### 自主唤醒系统 — 无人值守任务推进
+### 自主喚醒系統 — 無人值守任務推進
 ![Auto-Wake Demo](docs/screenshots/auto-wake-demo.png)
 
 ---
 
-## 自主唤醒系统 (Auto-Wake)
+## 自主喚醒系統 (Auto-Wake)
 
-AI Team OS 的 Leader 支持定时自动唤醒，在无人值守时自主推进任务：
+AI Team OS 的 Leader 支援定時自動喚醒，在無人值守時自主推進任務：
 
-- 每 10 分钟自动检查上下文使用率和待办任务
-- 有待办任务时自主创建团队并分配工作
-- 需要用户决策时通过 Briefing 系统异步记录
-- 上下文 > 80% 时自动保存进度并提醒开新 session
+- 每 10 分鐘自動檢查上下文使用率和待辦任務
+- 有待辦任務時自主建立團隊並分配工作
+- 需要使用者決策時通過 Briefing 系統非同步記錄
+- 上下文 > 80% 時自動儲存進度並提醒開新 session
 
 ---
 
-## 生态集成配方
+## 生態整合配方
 
-AI Team OS 的定位是**元 Plugin** — 编排其他 MCP server，而非重新实现它们的功能。预设配方让你在几分钟内集成流行工具：
+AI Team OS 的定位是**元 Plugin** — 編排其他 MCP server，而非重新實現它們的功能。預設配方讓你在幾分鐘內整合流行工具：
 
-| 配方 | 集成对象 | 能力 |
+| 配方 | 整合物件 | 能力 |
 |------|---------|------|
-| **GitHub** | `@modelcontextprotocol/github` | 自动创建 PR、Issue 跟踪、代码审查协调 |
-| **Slack** | `@anthropics/slack-mcp` | 团队通知、决策升级、状态广播 |
-| **Linear** | `linear-mcp-server` | 任务同步、Sprint 跟踪、Bug 分流自动化 |
-| **全栈团队** | GitHub + Slack + Linear | 完整开发工作流，跨工具编排 |
+| **GitHub** | `@modelcontextprotocol/github` | 自動建立 PR、Issue 跟蹤、程式碼審查協調 |
+| **Slack** | `@anthropics/slack-mcp` | 團隊通知、決策升級、狀態廣播 |
+| **Linear** | `linear-mcp-server` | 任務同步、Sprint 跟蹤、Bug 分流自動化 |
+| **全棧團隊** | GitHub + Slack + Linear | 完整開發工作流，跨工具編排 |
 
-使用 `ecosystem_recipes` MCP 工具发现配方，或查看完整指南：[docs/ecosystem-recipes.md](docs/ecosystem-recipes.md)
-
----
-
-## CC-First 设计原则
-
-AI Team OS 专为 Claude Code 设计，不是独立框架：
-
-- **MCP 协议原生**：107 个工具全部通过 MCP 注册 — 无自定义客户端，无 API 包装器
-- **Hook 驱动生命周期**：9 个 CC 生命周期事件（SessionStart → PreCompact）提供深度集成，无需修改 CC 内部
-- **Agent 模板即 `.md` 文件**：安装到 `~/.claude/agents/`（全局）或 `.claude/agents/`（项目级）— CC 原生 Agent 系统，非自定义抽象
-- **运行时零外部依赖**：不调用外部 API，不依赖云服务 — 100% 在你的 CC 订阅内运行
-- **上下文感知**：Session bootstrap 仅注入 5 条核心规则（从 23 条精简），subagent 上下文限制 60 行，最大化减少上下文预算占用
+使用 `ecosystem_recipes` MCP 工具發現配方，或檢視完整指南：[docs/ecosystem-recipes.md](docs/ecosystem-recipes.md)
 
 ---
 
-## MCP 工具一览
+## CC-First 設計原則
+
+AI Team OS 專為 Claude Code 設計，不是獨立框架：
+
+- **MCP 協議原生**：107 個工具全部通過 MCP 註冊 — 無自定義客戶端，無 API 包裝器
+- **Hook 驅動生命週期**：9 個 CC 生命週期事件（SessionStart → PreCompact）提供深度整合，無需修改 CC 內部
+- **Agent 模板即 `.md` 檔案**：安裝到 `~/.claude/agents/`（全域性）或 `.claude/agents/`（專案級）— CC 原生 Agent 系統，非自定義抽象
+- **執行時零外部依賴**：不呼叫外部 API，不依賴雲服務 — 100% 在你的 CC 訂閱內執行
+- **上下文感知**：Session bootstrap 僅注入 5 條核心規則（從 23 條精簡），subagent 上下文限制 60 行，最大化減少上下文預算佔用
+
+---
+
+## MCP 工具一覽
 
 <details>
-<summary>展开查看全部 107 个 MCP 工具（22 个模块）</summary>
+<summary>展開檢視全部 107 個 MCP 工具（22 個模組）</summary>
 
-### 团队管理
+### 團隊管理
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `team_create` | 创建 AI Agent 团队，支持 coordinate/broadcast 模式 |
-| `team_status` | 获取团队详情和成员状态 |
-| `team_list` | 列出所有团队 |
-| `team_briefing` | 一次调用获取团队全景简报（成员+事件+会议+待办） |
-| `team_setup_guide` | 根据项目类型推荐团队角色配置 |
+| `team_create` | 建立 AI Agent 團隊，支援 coordinate/broadcast 模式 |
+| `team_status` | 獲取團隊詳情和成員狀態 |
+| `team_list` | 列出所有團隊 |
+| `team_briefing` | 一次呼叫獲取團隊全景簡報（成員+事件+會議+待辦） |
+| `team_setup_guide` | 根據專案型別推薦團隊角色配置 |
 
 ### Agent 管理
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `agent_register` | 注册新 Agent 到团队 |
-| `agent_update_status` | 更新 Agent 状态（idle/busy/error） |
-| `agent_list` | 列出团队成员 |
-| `agent_template_list` | 获取可用的 Agent 模板列表 |
-| `agent_template_recommend` | 根据任务描述推荐最适合的 Agent 模板 |
+| `agent_register` | 註冊新 Agent 到團隊 |
+| `agent_update_status` | 更新 Agent 狀態（idle/busy/error） |
+| `agent_list` | 列出團隊成員 |
+| `agent_template_list` | 獲取可用的 Agent 模板列表 |
+| `agent_template_recommend` | 根據任務描述推薦最適合的 Agent 模板 |
 
-### 任务管理
+### 任務管理
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `task_run` | 执行任务并记录全程 |
-| `task_decompose` | 将复杂任务分解为子任务 |
-| `task_status` | 查询任务执行状态 |
-| `taskwall_view` | 查看任务墙（全部待办+进行中+已完成） |
-| `task_create` | 创建新任务（支持 `auto_start` 和 `task_type` 管道参数） |
-| `task_update` | 局部更新任务字段，自动打时间戳 |
-| `task_list_project` | 列出项目下所有任务 |
-| `task_auto_match` | 基于任务特征智能匹配最佳 Agent |
-| `task_memo_add` | 为任务添加执行备忘记录 |
-| `task_memo_read` | 读取任务历史备忘 |
+| `task_run` | 執行任務並記錄全程 |
+| `task_decompose` | 將複雜任務分解為子任務 |
+| `task_status` | 查詢任務執行狀態 |
+| `taskwall_view` | 檢視任務牆（全部待辦+進行中+已完成） |
+| `task_create` | 建立新任務（支援 `auto_start` 和 `task_type` 管道引數） |
+| `task_update` | 區域性更新任務欄位，自動打時間戳 |
+| `task_list_project` | 列出專案下所有任務 |
+| `task_auto_match` | 基於任務特徵智慧匹配最佳 Agent |
+| `task_memo_add` | 為任務新增執行備忘記錄 |
+| `task_memo_read` | 讀取任務歷史備忘 |
 
-### 管道编排
+### 管道編排
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `pipeline_create` | 为任务挂载工作流管道（7 种模板：feature/bugfix/research/refactor/quick-fix/spike/hotfix） |
-| `pipeline_advance` | 推进管道到下一阶段，返回下一阶段的 Agent 模板推荐 |
+| `pipeline_create` | 為任務掛載工作流管道（7 種模板：feature/bugfix/research/refactor/quick-fix/spike/hotfix） |
+| `pipeline_advance` | 推進管道到下一階段，返回下一階段的 Agent 模板推薦 |
 
-### Loop 循环引擎
+### Loop 迴圈引擎
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `loop_start` | 启动自动推进循环 |
-| `loop_status` | 查看循环状态 |
-| `loop_next_task` | 获取下一个待处理任务 |
-| `loop_advance` | 推进循环到下一阶段 |
-| `loop_pause` | 暂停循环 |
-| `loop_resume` | 恢复循环 |
-| `loop_review` | 生成循环回顾报告（含失败分析） |
+| `loop_start` | 啟動自動推進迴圈 |
+| `loop_status` | 檢視迴圈狀態 |
+| `loop_next_task` | 獲取下一個待處理任務 |
+| `loop_advance` | 推進迴圈到下一階段 |
+| `loop_pause` | 暫停迴圈 |
+| `loop_resume` | 恢復迴圈 |
+| `loop_review` | 生成迴圈回顧報告（含失敗分析） |
 
-### 会议系统
+### 會議系統
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `meeting_create` | 创建结构化会议（8 种模板，关键词自动匹配） |
-| `meeting_send_message` | 发送会议消息 |
-| `meeting_read_messages` | 读取会议记录 |
-| `meeting_conclude` | 总结会议结论 |
-| `meeting_template_list` | 获取可用会议模板列表 |
-| `meeting_list` | 列出所有会议 |
-| `meeting_update` | 更新会议元数据 |
+| `meeting_create` | 建立結構化會議（8 種模板，關鍵詞自動匹配） |
+| `meeting_send_message` | 傳送會議訊息 |
+| `meeting_read_messages` | 讀取會議記錄 |
+| `meeting_conclude` | 總結會議結論 |
+| `meeting_template_list` | 獲取可用會議模板列表 |
+| `meeting_list` | 列出所有會議 |
+| `meeting_update` | 更新會議後設資料 |
 
-### Channel 通讯
+### Channel 通訊
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `channel_send` | 向频道发送消息（team:/project:/global），支持 @mention |
-| `channel_read` | 读取频道消息 |
-| `channel_mentions` | 获取 Agent 的未读 @提及 |
+| `channel_send` | 向頻道傳送訊息（team:/project:/global），支援 @mention |
+| `channel_read` | 讀取頻道訊息 |
+| `channel_mentions` | 獲取 Agent 的未讀 @提及 |
 
-### 文件锁/工作区隔离
+### 檔案鎖/工作區隔離
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `file_lock_acquire` | 获取文件锁（TTL=300s），防止并发编辑 |
-| `file_lock_release` | 释放文件锁 |
-| `file_lock_check` | 检查文件是否被锁定及锁定者 |
-| `file_lock_list` | 列出所有活跃的文件锁 |
+| `file_lock_acquire` | 獲取檔案鎖（TTL=300s），防止併發編輯 |
+| `file_lock_release` | 釋放檔案鎖 |
+| `file_lock_check` | 檢查檔案是否被鎖定及鎖定者 |
+| `file_lock_list` | 列出所有活躍的檔案鎖 |
 
-### Git 自动化
+### Git 自動化
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `git_auto_commit` | 自动提交暂存变更并生成提交消息 |
-| `git_create_pr` | 从当前分支创建 Pull Request |
-| `git_status_check` | 检查 Git 仓库状态 |
+| `git_auto_commit` | 自動提交暫存變更並生成提交訊息 |
+| `git_create_pr` | 從當前分支建立 Pull Request |
+| `git_status_check` | 檢查 Git 倉庫狀態 |
 
-### 辩论系统
+### 辯論系統
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `debate_start` | 启动 4 轮结构化辩论（Advocate→Critic→Response→Judge） |
-| `debate_code_review` | 启动代码审查辩论会话 |
+| `debate_start` | 啟動 4 輪結構化辯論（Advocate→Critic→Response→Judge） |
+| `debate_code_review` | 啟動程式碼審查辯論會話 |
 
-### 护栏系统
+### 護欄系統
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `guardrail_check` | 对命令字符串执行护栏检查 |
-| `guardrail_check_payload` | 对结构化载荷执行护栏检查 |
+| `guardrail_check` | 對命令字串執行護欄檢查 |
+| `guardrail_check_payload` | 對結構化載荷執行護欄檢查 |
 
-### 执行模式
+### 執行模式
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `pattern_record` | 记录成功/失败执行模式 |
-| `pattern_search` | 通过 BM25 检索执行模式，用于上下文注入 |
+| `pattern_record` | 記錄成功/失敗執行模式 |
+| `pattern_search` | 通過 BM25 檢索執行模式，用於上下文注入 |
 
-### 智能分析
+### 智慧分析
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `failure_analysis` | 失败炼金术——分析失败根因，生成抗体/疫苗/催化剂 |
-| `what_if_analysis` | What-If 分析器——多方案对比推荐 |
-| `decision_log` | 记录决策到驾驶舱时间线 |
-| `context_resolve` | 解析当前上下文，获取相关背景信息 |
+| `failure_analysis` | 失敗鍊金術——分析失敗根因，生成抗體/疫苗/催化劑 |
+| `what_if_analysis` | What-If 分析器——多方案對比推薦 |
+| `decision_log` | 記錄決策到駕駛艙時間線 |
+| `context_resolve` | 解析當前上下文，獲取相關背景資訊 |
 
-### 记忆系统
+### 記憶系統
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `memory_search` | 全文检索团队记忆库 |
-| `team_knowledge` | 获取团队知识摘要 |
+| `memory_search` | 全文檢索團隊記憶庫 |
+| `team_knowledge` | 獲取團隊知識摘要 |
 
-### 信任与可靠性
+### 信任與可靠性
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `agent_trust_scores` | 查看所有 Agent 的信任评分 |
-| `agent_trust_update` | 手动调整 Agent 的信任评分 |
-| `agent_heartbeat` | 发送运行中 Agent 的心跳信号 |
-| `watchdog_check` | 检查卡死的 Agent（5 分钟 TTL 超时） |
-| `error_budget_status` | 查看 SRE 错误预算（GREEN/YELLOW/ORANGE/RED） |
-| `error_budget_update` | 记录任务结果到错误预算 |
-| `verify_completion` | 验证任务完成状态（状态 + memo 检查，防幻觉） |
+| `agent_trust_scores` | 檢視所有 Agent 的信任評分 |
+| `agent_trust_update` | 手動調整 Agent 的信任評分 |
+| `agent_heartbeat` | 傳送執行中 Agent 的心跳訊號 |
+| `watchdog_check` | 檢查卡死的 Agent（5 分鐘 TTL 超時） |
+| `error_budget_status` | 檢視 SRE 錯誤預算（GREEN/YELLOW/ORANGE/RED） |
+| `error_budget_update` | 記錄任務結果到錯誤預算 |
+| `verify_completion` | 驗證任務完成狀態（狀態 + memo 檢查，防幻覺） |
 
 ### 分析
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `task_execution_trace` | 获取任务的统一执行时间线 |
-| `task_replay` | 回放任务执行历史 |
-| `task_compare` | 并排对比两次任务执行 |
-| `diagnose_task_failure` | 自动诊断任务失败原因 |
+| `task_execution_trace` | 獲取任務的統一執行時間線 |
+| `task_replay` | 回放任務執行歷史 |
+| `task_compare` | 並排對比兩次任務執行 |
+| `diagnose_task_failure` | 自動診斷任務失敗原因 |
 
-### 简报系统
+### 簡報系統
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `briefing_add` | 添加待用户审查的决策项 |
-| `briefing_list` | 列出待处理的简报项 |
-| `briefing_resolve` | 以决策解决简报项 |
-| `briefing_dismiss` | 忽略简报项 |
+| `briefing_add` | 新增待使用者審查的決策項 |
+| `briefing_list` | 列出待處理的簡報項 |
+| `briefing_resolve` | 以決策解決簡報項 |
+| `briefing_dismiss` | 忽略簡報項 |
 
-### 报告（数据库存储）
+### 報告（資料庫儲存）
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `report_save` | 保存报告到数据库，支持项目隔离（研究/设计/分析/会议纪要） |
-| `report_list` | 列出报告，支持按项目、类型、作者、主题过滤 |
-| `report_read` | 通过报告 ID 读取报告 |
+| `report_save` | 儲存報告到資料庫，支援專案隔離（研究/設計/分析/會議紀要） |
+| `report_list` | 列出報告，支援按專案、型別、作者、主題過濾 |
+| `report_read` | 通過報告 ID 讀取報告 |
 
-### 调度器
+### 排程器
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `scheduler_create` | 创建定时周期任务 |
-| `scheduler_list` | 列出定时任务 |
-| `scheduler_delete` | 删除定时任务 |
-| `scheduler_pause` | 暂停定时任务 |
+| `scheduler_create` | 建立定時週期任務 |
+| `scheduler_list` | 列出定時任務 |
+| `scheduler_delete` | 刪除定時任務 |
+| `scheduler_pause` | 暫停定時任務 |
 
-### 缓存管理
+### 快取管理
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `cache_stats` | 查看语义缓存命中/未命中统计 |
-| `cache_clear` | 清空语义缓存 |
+| `cache_stats` | 檢視語義快取命中/未命中統計 |
+| `cache_clear` | 清空語義快取 |
 
-### 生态集成
+### 生態整合
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `ecosystem_recipes` | 发现集成配方（GitHub/Slack/Linear/全栈） |
-| `send_notification` | 通过 Slack/webhook 发送通知 |
-| `cross_project_send` | 发送跨项目消息 |
-| `cross_project_inbox` | 读取跨项目收件箱 |
+| `ecosystem_recipes` | 發現整合配方（GitHub/Slack/Linear/全棧） |
+| `send_notification` | 通過 Slack/webhook 傳送通知 |
+| `cross_project_send` | 傳送跨專案訊息 |
+| `cross_project_inbox` | 讀取跨專案收件箱 |
 
 ### Prompt Registry
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
 | `prompt_version_list` | 列出 Agent 模板版本 |
-| `prompt_effectiveness` | 查看模板效果指标 |
+| `prompt_effectiveness` | 檢視模板效果指標 |
 
-### 项目管理
+### 專案管理
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `project_create` | 创建项目 |
-| `project_list` | 列出所有项目 |
-| `project_update` | 更新项目设置 |
-| `project_delete` | 删除项目 |
-| `project_summary` | 获取项目快速状态摘要 |
-| `phase_create` | 创建项目阶段 |
-| `phase_list` | 列出项目阶段 |
+| `project_create` | 建立專案 |
+| `project_list` | 列出所有專案 |
+| `project_update` | 更新專案設定 |
+| `project_delete` | 刪除專案 |
+| `project_summary` | 獲取專案快速狀態摘要 |
+| `phase_create` | 建立專案階段 |
+| `phase_list` | 列出專案階段 |
 
-### 系统运维
+### 系統運維
 
-| 工具 | 说明 |
+| 工具 | 說明 |
 |------|------|
-| `os_health_check` | OS 健康检查 |
-| `event_list` | 查看系统事件流 |
-| `os_report_issue` | 上报问题 |
-| `os_resolve_issue` | 标记问题已解决 |
-| `agent_activity_query` | 查询 Agent 活动历史和统计数据 |
-| `find_skill` | 三层渐进技能发现（快速推荐 / 分类浏览 / 完整详情） |
-| `team_close` | 关闭团队并级联关闭其所有活跃会议 |
-| `team_delete` | 删除团队 |
+| `os_health_check` | OS 健康檢查 |
+| `event_list` | 檢視系統事件流 |
+| `os_report_issue` | 上報問題 |
+| `os_resolve_issue` | 標記問題已解決 |
+| `agent_activity_query` | 查詢 Agent 活動歷史和統計資料 |
+| `find_skill` | 三層漸進技能發現（快速推薦 / 分類瀏覽 / 完整詳情） |
+| `team_close` | 關閉團隊並級聯關閉其所有活躍會議 |
+| `team_delete` | 刪除團隊 |
 
 </details>
 
 ---
 
-## Agent 模板库
+## Agent 模板庫
 
-25 个开箱即用的专业 Agent 模板，含推荐引擎，覆盖完整软件工程团队配置。模板安装到 `plugin/agents/`（项目级）和 `~/.claude/agents/`（全局，跨项目可用）。
+25 個開箱即用的專業 Agent 模板，含推薦引擎，覆蓋完整軟體工程團隊配置。模板安裝到 `plugin/agents/`（專案級）和 `~/.claude/agents/`（全域性，跨專案可用）。
 
-### 工程部（13 个模板）
+### 工程部（13 個模板）
 
-| 模板名 | 角色 | 适用场景 |
+| 模板名 | 角色 | 適用場景 |
 |--------|------|---------|
-| `engineering-software-architect` | 软件架构师 | 系统设计、架构评审 |
-| `engineering-backend-architect` | 后端架构师 | API 设计、服务架构 |
-| `engineering-frontend-developer` | 前端开发工程师 | UI 实现、交互开发 |
-| `engineering-ai-engineer` | AI 工程师 | 模型集成、LLM 应用 |
-| `engineering-mcp-builder` | MCP 构建专家 | MCP 工具开发 |
-| `engineering-code-reviewer` | 代码审查工程师 | 代码质量审查、PR 审查 |
-| `engineering-database-optimizer` | 数据库优化师 | 查询优化、Schema 设计 |
-| `engineering-devops-automator` | DevOps 自动化工程师 | CI/CD、基础设施 |
-| `engineering-sre` | 站点可靠性工程师 | 可观测性、故障处理 |
-| `engineering-security-engineer` | 安全工程师 | 安全审查、漏洞分析 |
-| `engineering-rapid-prototyper` | 快速原型工程师 | MVP 验证、快速迭代 |
-| `engineering-mobile-developer` | 移动端开发工程师 | iOS/Android 开发 |
-| `engineering-git-workflow-master` | Git 工作流专家 | 分支策略、代码协作 |
+| `engineering-software-architect` | 軟體架構師 | 系統設計、架構評審 |
+| `engineering-backend-architect` | 後端架構師 | API 設計、服務架構 |
+| `engineering-frontend-developer` | 前端開發工程師 | UI 實現、互動開發 |
+| `engineering-ai-engineer` | AI 工程師 | 模型整合、LLM 應用 |
+| `engineering-mcp-builder` | MCP 構建專家 | MCP 工具開發 |
+| `engineering-code-reviewer` | 程式碼審查工程師 | 程式碼質量審查、PR 審查 |
+| `engineering-database-optimizer` | 資料庫最佳化師 | 查詢最佳化、Schema 設計 |
+| `engineering-devops-automator` | DevOps 自動化工程師 | CI/CD、基礎設施 |
+| `engineering-sre` | 站點可靠性工程師 | 可觀測性、故障處理 |
+| `engineering-security-engineer` | 安全工程師 | 安全審查、漏洞分析 |
+| `engineering-rapid-prototyper` | 快速原型工程師 | MVP 驗證、快速迭代 |
+| `engineering-mobile-developer` | 移動端開發工程師 | iOS/Android 開發 |
+| `engineering-git-workflow-master` | Git 工作流專家 | 分支策略、程式碼協作 |
 
-### 测试部（4 个模板）
+### 測試部（4 個模板）
 
-| 模板名 | 角色 | 适用场景 |
+| 模板名 | 角色 | 適用場景 |
 |--------|------|---------|
-| `testing-qa-engineer` | QA 工程师 | 测试策略、质量保障 |
-| `testing-api-tester` | API 测试专家 | 接口测试、契约测试 |
-| `testing-bug-fixer` | Bug 修复专家 | 缺陷分析、根因排查 |
-| `testing-performance-benchmarker` | 性能基准测试师 | 性能分析、压测 |
+| `testing-qa-engineer` | QA 工程師 | 測試策略、質量保障 |
+| `testing-api-tester` | API 測試專家 | 介面測試、契約測試 |
+| `testing-bug-fixer` | Bug 修復專家 | 缺陷分析、根因排查 |
+| `testing-performance-benchmarker` | 效能基準測試師 | 效能分析、壓測 |
 
-### 研究与支持（3 个模板）
+### 研究與支援（3 個模板）
 
-| 模板名 | 角色 | 适用场景 |
+| 模板名 | 角色 | 適用場景 |
 |--------|------|---------|
-| `specialized-workflow-architect` | 工作流架构师 | 流程设计、自动化编排 |
-| `support-technical-writer` | 技术文档工程师 | API 文档、用户指南 |
-| `support-meeting-facilitator` | 会议主持人 | 结构化讨论、决策推进 |
+| `specialized-workflow-architect` | 工作流架構師 | 流程設計、自動化編排 |
+| `support-technical-writer` | 技術文件工程師 | API 文件、使用者指南 |
+| `support-meeting-facilitator` | 會議主持人 | 結構化討論、決策推進 |
 
-### 管理层（2 个模板）
+### 管理層（2 個模板）
 
-| 模板名 | 角色 | 适用场景 |
+| 模板名 | 角色 | 適用場景 |
 |--------|------|---------|
-| `management-tech-lead` | 技术 Lead | 技术决策、团队协调 |
-| `management-project-manager` | 项目经理 | 进度管理、风险跟踪 |
+| `management-tech-lead` | 技術 Lead | 技術決策、團隊協調 |
+| `management-project-manager` | 專案經理 | 進度管理、風險跟蹤 |
 
-### 辩论角色（2 个模板）
+### 辯論角色（2 個模板）
 
-| 模板名 | 角色 | 适用场景 |
+| 模板名 | 角色 | 適用場景 |
 |--------|------|---------|
-| `debate-advocate` | 辩论倡导者 | 在结构化辩论中提出和捍卫方案 |
-| `debate-critic` | 辩论评论者 | 挑战提案、发现弱点 |
+| `debate-advocate` | 辯論倡導者 | 在結構化辯論中提出和捍衛方案 |
+| `debate-critic` | 辯論評論者 | 挑戰提案、發現弱點 |
 
-### 通用模板（1 个）
+### 通用模板（1 個）
 
-| 模板名 | 角色 | 适用场景 |
+| 模板名 | 角色 | 適用場景 |
 |--------|------|---------|
-| `team-member` | 通用团队成员 | 通用型任务的默认角色 |
+| `team-member` | 通用團隊成員 | 通用型任務的預設角色 |
 
 ---
 
-## 路线图
+## 路線圖
 
 ### 已完成
 
-- [x] 核心 Loop 引擎（LoopEngine + 任务墙 + Watchdog + 回顾）
-- [x] 失败炼金术（抗体 + 疫苗 + 催化剂）
-- [x] 决策驾驶舱（事件流 + 时间线 + 意图透视）
-- [x] 事件驱动任务墙 2.0（实时推送 + 智能匹配）
-- [x] 团队活记忆（知识查询 + 经验共享）
-- [x] What-If 分析器（多方案对比推荐）
-- [x] 8 种结构化会议模板，支持关键词自动匹配
-- [x] 25 个专业 Agent 模板（23 基础 + 2 辩论角色），含推荐引擎
-- [x] 四层防线规则体系（48+ 条规则）+ 行为强制
-- [x] Dashboard 指挥中心（React 19）— 18 个页面，含 Pipeline / Failures / Prompts / Agent Live Board
-- [x] 107 个 MCP 工具，分布在 22 个模块中
-- [x] AWARE 循环记忆系统
-- [x] find_skill 三层渐进发现
-- [x] task_update API，支持程序化任务管理
-- [x] 工作流管道编排（7 种模板 + 自动阶段推进 + 渐进式强制）
-- [x] 631+ 自动化测试（含 28 个跨功能集成测试）
-- [x] Prompt Registry（版本追踪 + 效果统计）
-- [x] BM25 搜索升级（中文 bigram + 英文分词，搜索质量提升 3-5x）
-- [x] 事件日志增强（entity_id / entity_type / state_snapshot 字段）
+- [x] 核心 Loop 引擎（LoopEngine + 任務牆 + Watchdog + 回顧）
+- [x] 失敗鍊金術（抗體 + 疫苗 + 催化劑）
+- [x] 決策駕駛艙（事件流 + 時間線 + 意圖透視）
+- [x] 事件驅動任務牆 2.0（即時推送 + 智慧匹配）
+- [x] 團隊活記憶（知識查詢 + 經驗共享）
+- [x] What-If 分析器（多方案對比推薦）
+- [x] 8 種結構化會議模板，支援關鍵詞自動匹配
+- [x] 25 個專業 Agent 模板（23 基礎 + 2 辯論角色），含推薦引擎
+- [x] 四層防線規則體系（48+ 條規則）+ 行為強制
+- [x] Dashboard 指揮中心（React 19）— 18 個頁面，含 Pipeline / Failures / Prompts / Agent Live Board
+- [x] 107 個 MCP 工具，分佈在 22 個模組中
+- [x] AWARE 迴圈記憶系統
+- [x] find_skill 三層漸進發現
+- [x] task_update API，支援程式化任務管理
+- [x] 工作流管道編排（7 種模板 + 自動階段推進 + 漸進式強制）
+- [x] 631+ 自動化測試（含 28 個跨功能整合測試）
+- [x] Prompt Registry（版本追蹤 + 效果統計）
+- [x] BM25 搜尋升級（中文 bigram + 英文分詞，搜尋質量提升 3-5x）
+- [x] 事件日誌增強（entity_id / entity_type / state_snapshot 欄位）
 - [x] CC Plugin Marketplace 正式提交
-- [x] 文件锁/工作区隔离（acquire/release/check/list + TTL=300s）
-- [x] Channel 通讯系统（team:/project:/global + @mention）
-- [x] 执行模式记忆（成功/失败记录 + BM25 检索）
-- [x] Git 自动化工具（git_auto_commit / git_create_pr / git_status_check）
-- [x] Guardrails L1（7 种危险模式 + PII 警告）
-- [x] Alembic 数据库迁移系统
-- [x] 辩论模式（4 轮结构化辩论 + 代码审查）
-- [x] Agent 信任评分系统（任务成功/失败自动调整）
-- [x] 语义缓存层（BM25 + Jaccard 相似度，TTL 过期）
-- [x] 工具分级定义（CORE 15 vs ADVANCED 46）
-- [x] Agent Watchdog 心跳系统（5 分钟 TTL 超时检测）
-- [x] SRE 错误预算模型（GREEN/YELLOW/ORANGE/RED 四级响应）
-- [x] 完成验证协议（防幻觉完成检查）
-- [x] 生态集成配方（GitHub/Slack/Linear/全栈团队预设）
-- [x] Session bootstrap 规则压缩（23 → 5 条核心规则，上下文减少 60%）
-- [x] API 原子启动锁（多 session 端口冲突防护）
-- [x] 自动端口发现（API 自动寻找空闲端口，写入 `api_port.txt`）
-- [x] MCP HTTP Streamable 端点（`/mcp/` 挂载到 FastAPI）
-- [x] PyPI 1.2.0 发布（`pip install ai-team-os`）
-- [x] INSTALL.md CC 辅助安装指引
+- [x] 檔案鎖/工作區隔離（acquire/release/check/list + TTL=300s）
+- [x] Channel 通訊系統（team:/project:/global + @mention）
+- [x] 執行模式記憶（成功/失敗記錄 + BM25 檢索）
+- [x] Git 自動化工具（git_auto_commit / git_create_pr / git_status_check）
+- [x] Guardrails L1（7 種危險模式 + PII 警告）
+- [x] Alembic 資料庫遷移系統
+- [x] 辯論模式（4 輪結構化辯論 + 程式碼審查）
+- [x] Agent 信任評分系統（任務成功/失敗自動調整）
+- [x] 語義快取層（BM25 + Jaccard 相似度，TTL 過期）
+- [x] 工具分級定義（CORE 15 vs ADVANCED 46）
+- [x] Agent Watchdog 心跳系統（5 分鐘 TTL 超時檢測）
+- [x] SRE 錯誤預算模型（GREEN/YELLOW/ORANGE/RED 四級響應）
+- [x] 完成驗證協議（防幻覺完成檢查）
+- [x] 生態整合配方（GitHub/Slack/Linear/全棧團隊預設）
+- [x] Session bootstrap 規則壓縮（23 → 5 條核心規則，上下文減少 60%）
+- [x] API 原子啟動鎖（多 session 埠衝突防護）
+- [x] 自動埠發現（API 自動尋找空閒埠，寫入 `api_port.txt`）
+- [x] MCP HTTP Streamable 端點（`/mcp/` 掛載到 FastAPI）
+- [x] PyPI 1.2.0 釋出（`pip install ai-team-os`）
+- [x] INSTALL.md CC 輔助安裝指引
 
-### 进行中 / 计划中
+### 進行中 / 計劃中
 
-- [ ] 多用户隔离（Multi-tenant 支持）
-- [ ] 实战验证与性能优化
+- [ ] 多使用者隔離（Multi-tenant 支援）
+- [ ] 實戰驗證與效能最佳化
 - [x] Claude Code Plugin Marketplace 上架
-- [ ] 完整集成测试套件
-- [ ] 文档网站（Docusaurus）
-- [ ] 视频教程系列
+- [ ] 完整整合測試套件
+- [ ] 文件網站（Docusaurus）
+- [ ] 影片教程系列
 
 ---
 
-## 项目结构
+## 專案結構
 
 ```
 ai-team-os/
 ├── src/aiteam/
-│   ├── api/           — FastAPI REST 端点
+│   ├── api/           — FastAPI REST 端點
 │   ├── mcp/
-│   │   ├── server.py  — MCP 服务器入口
-│   │   └── tools/     — 22 个工具模块（共 107 个工具）
+│   │   ├── server.py  — MCP 伺服器入口
+│   │   └── tools/     — 22 個工具模組（共 107 個工具）
 │   ├── loop/          — Loop 引擎
-│   ├── meeting/       — 会议系统
-│   ├── memory/        — 团队记忆
-│   ├── orchestrator/  — 团队编排器
-│   ├── storage/       — 存储层（SQLite/PostgreSQL）+ Alembic 迁移
-│   ├── templates/     — Agent 模板基类
-│   ├── hooks/         — CC Hook 脚本（9 个生命周期事件）
-│   └── types.py       — 共享类型定义
+│   ├── meeting/       — 會議系統
+│   ├── memory/        — 團隊記憶
+│   ├── orchestrator/  — 團隊編排器
+│   ├── storage/       — 儲存層（SQLite/PostgreSQL）+ Alembic 遷移
+│   ├── templates/     — Agent 模板基類
+│   ├── hooks/         — CC Hook 指令碼（9 個生命週期事件）
+│   └── types.py       — 共享型別定義
 ├── plugin/
-│   ├── agents/        — 25 个 Agent 模板（.md）
-│   └── .claude-plugin/ — Plugin 清单
-├── dashboard/         — React 19 前端（18 个页面）
-├── docs/              — 设计文档 + 生态集成配方
-├── tests/             — 测试套件（631+ 测试）
-├── install.py         — 一键安装脚本
+│   ├── agents/        — 25 個 Agent 模板（.md）
+│   └── .claude-plugin/ — Plugin 清單
+├── dashboard/         — React 19 前端（18 個頁面）
+├── docs/              — 設計文件 + 生態整合配方
+├── tests/             — 測試套件（631+ 測試）
+├── install.py         — 一鍵安裝指令碼
 └── pyproject.toml
 ```
 
 ---
 
-## 贡献指南
+## 貢獻指南
 
-欢迎贡献！特别期待以下方向：
+歡迎貢獻！特別期待以下方向：
 
-- **新 Agent 模板**：如果你有专业角色的提示词设计，欢迎 PR
-- **会议模板扩展**：新的结构化讨论模式
-- **Bug 修复**：提 Issue 或直接 PR
-- **文档改善**：发现文档与代码不一致，欢迎纠正
+- **新 Agent 模板**：如果你有專業角色的提示詞設計，歡迎 PR
+- **會議模板擴充套件**：新的結構化討論模式
+- **Bug 修復**：提 Issue 或直接 PR
+- **文件改善**：發現文件與程式碼不一致，歡迎糾正
 
 ```bash
-# 开发环境搭建
+# 開發環境搭建
 git clone https://github.com/CronusL-1141/AI-company.git
 cd AI-company/ai-team-os
 pip install -e ".[dev]"
 pytest tests/
 ```
 
-提 PR 前请确保：
-- `ruff check src/` 通过
-- `mypy src/` 无新增错误
-- 相关测试通过
+提 PR 前請確保：
+- `ruff check src/` 通過
+- `mypy src/` 無新增錯誤
+- 相關測試通過
 
 ---
 
 ## License
 
-MIT License — 详见 [LICENSE](LICENSE)
+MIT License — 詳見 [LICENSE](LICENSE)
 
 ---
 
 <div align="center">
 
-**AI Team OS** — 你睡觉，它还在工作。
+**AI Team OS** — 你睡覺，它還在工作。
 
 *Built with Claude Code · Powered by MCP Protocol*
 
-[文档](docs/) · [Issues](https://github.com/CronusL-1141/AI-company/issues) · [讨论区](https://github.com/CronusL-1141/AI-company/discussions)
+[文件](docs/) · [Issues](https://github.com/CronusL-1141/AI-company/issues) · [討論區](https://github.com/CronusL-1141/AI-company/discussions)
 
 </div>

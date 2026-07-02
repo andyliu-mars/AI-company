@@ -24,13 +24,13 @@ import {
 } from '@/api/ecosystem';
 
 /**
- * /ecosystem/research — 候选筛选页（v1.5.0-E §8.3）。
+ * /ecosystem/research — 候選篩選頁（v1.5.0-E §8.3）。
  *
  * 流程：
- *   1. 用户输入研究目标 + tag 关键词
- *   2. 系统按 tag 找候选（topic match）+ 浅扫 summary 展示
- *   3. 用户多选候选 → 触发 Stage 1 batch (deep_review_request_batch)
- *   4. 跳转/提示后续 finalists 由会议系统驱动
+ *   1. 使用者輸入研究目標 + tag 關鍵詞
+ *   2. 系統按 tag 找候選（topic match）+ 淺掃 summary 展示
+ *   3. 使用者多選候選 → 觸發 Stage 1 batch (deep_review_request_batch)
+ *   4. 跳轉/提示後續 finalists 由會議系統驅動
  */
 export function EcosystemResearchPage() {
   const [researchGoal, setResearchGoal] = useState('');
@@ -43,11 +43,11 @@ export function EcosystemResearchPage() {
     repo_full_names: string[];
   } | null>(null);
 
-  // 候选检索：用 tag 当作 topic 关键词（组合 OR）
+  // 候選檢索：用 tag 當作 topic 關鍵詞（組合 OR）
   const filters = useMemo(
     () => ({
       keyword: tagInput.trim(),
-      topic: tags[0] ?? '', // 后端只支持单 topic — 多 tag 用 keyword 兜底
+      topic: tags[0] ?? '', // 後端只支援單 topic — 多 tag 用 keyword 兜底
       minStars,
       limit: 50,
       isActive: true as boolean | null,
@@ -57,7 +57,7 @@ export function EcosystemResearchPage() {
   const { data, isLoading } = useEcosystemProfiles(filters);
   const candidates = data?.profiles ?? [];
 
-  // 用 tag 列表对候选做客户端二次过滤（topic ∩ tags）
+  // 用 tag 列表對候選做客戶端二次過濾（topic ∩ tags）
   const filteredCandidates = useMemo(() => {
     if (tags.length === 0) return candidates;
     return candidates.filter((c) => {
@@ -93,7 +93,7 @@ export function EcosystemResearchPage() {
   const onDispatch = () => {
     if (selectedIds.size === 0) return;
     if (tags.length === 0) {
-      alert('请至少添加一个 tag 用于 backend 候选筛选');
+      alert('請至少新增一個 tag 用於 backend 候選篩選');
       return;
     }
     batch.mutate(
@@ -129,19 +129,19 @@ export function EcosystemResearchPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5 text-primary" aria-hidden="true" />
-              候选研究 — Stage 1 派遣
+              候選研究 — Stage 1 派遣
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              输入研究目标 + tag 关键词，系统按活跃集筛选候选，多选后触发 Stage 1 架构分析。
+              輸入研究目標 + tag 關鍵詞，系統按活躍集篩選候選，多選後觸發 Stage 1 架構分析。
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* 研究目标 */}
+            {/* 研究目標 */}
             <div className="space-y-1">
-              <Label htmlFor="research-goal">研究目标</Label>
+              <Label htmlFor="research-goal">研究目標</Label>
               <Input
                 id="research-goal"
-                placeholder="例：升级我们的记忆系统，对比当前生态主流方案"
+                placeholder="例：升級我們的記憶系統，對比當前生態主流方案"
                 value={researchGoal}
                 onChange={(e) => setResearchGoal(e.target.value)}
               />
@@ -149,7 +149,7 @@ export function EcosystemResearchPage() {
 
             {/* Tags */}
             <div className="space-y-1">
-              <Label htmlFor="tag-input">候选 tags（回车添加）</Label>
+              <Label htmlFor="tag-input">候選 tags（回車新增）</Label>
               <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2">
                 {tags.map((t) => (
                   <Badge
@@ -157,7 +157,7 @@ export function EcosystemResearchPage() {
                     variant="secondary"
                     className="gap-1 cursor-pointer"
                     onClick={() => removeTag(t)}
-                    title="点击移除"
+                    title="點選移除"
                   >
                     <TagIcon className="h-3 w-3" aria-hidden="true" />
                     {t} ×
@@ -166,7 +166,7 @@ export function EcosystemResearchPage() {
                 <Input
                   id="tag-input"
                   className="flex-1 min-w-[120px] border-0 shadow-none focus-visible:ring-0 p-0 h-7"
-                  placeholder={tags.length === 0 ? '例：memory / mcp / agent' : '继续添加…'}
+                  placeholder={tags.length === 0 ? '例：memory / mcp / agent' : '繼續新增…'}
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -194,19 +194,19 @@ export function EcosystemResearchPage() {
           </CardContent>
         </Card>
 
-        {/* 候选列表 */}
+        {/* 候選列表 */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <CardTitle className="text-base flex items-center gap-2">
                 <Filter className="h-4 w-4" aria-hidden="true" />
-                候选列表
+                候選列表
                 <Badge variant="outline" className="font-normal">
                   {filteredCandidates.length}
                 </Badge>
                 {selectedIds.size > 0 && (
                   <Badge className="bg-primary/10 text-primary border-primary/30">
-                    已选 {selectedIds.size}
+                    已選 {selectedIds.size}
                   </Badge>
                 )}
               </CardTitle>
@@ -223,7 +223,7 @@ export function EcosystemResearchPage() {
                 ) : (
                   <>
                     <Send className="mr-1 h-4 w-4" aria-hidden="true" />
-                    触发 Stage 1（{selectedIds.size}）
+                    觸發 Stage 1（{selectedIds.size}）
                   </>
                 )}
               </Button>
@@ -233,10 +233,10 @@ export function EcosystemResearchPage() {
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" aria-hidden="true" />
                   <div className="text-xs text-emerald-700 dark:text-emerald-300">
-                    已派遣 {batchResult.dispatched} 个 deep_review intent，
-                    Leader 需通过 Agent 工具实际派遣 backend-architect。
+                    已派遣 {batchResult.dispatched} 個 deep_review intent，
+                    Leader 需通過 Agent 工具實際派遣 backend-architect。
                     {batchResult.repo_full_names.length > 0 && (
-                      <p className="mt-1">候选仓: {batchResult.repo_full_names.join(', ')}</p>
+                      <p className="mt-1">候選倉: {batchResult.repo_full_names.join(', ')}</p>
                     )}
                   </div>
                 </div>
@@ -254,8 +254,8 @@ export function EcosystemResearchPage() {
               <div className="py-8 text-center text-sm text-muted-foreground">
                 <Sparkles className="h-8 w-8 mx-auto opacity-30 mb-2" aria-hidden="true" />
                 {tags.length === 0
-                  ? '请输入 tag 后开始检索候选'
-                  : '当前 tag 组合下无活跃候选，可降低 min_stars 或切换 tag'}
+                  ? '請輸入 tag 後開始檢索候選'
+                  : '當前 tag 組合下無活躍候選，可降低 min_stars 或切換 tag'}
               </div>
             ) : (
               <div className="space-y-2">
@@ -281,7 +281,7 @@ export function EcosystemResearchPage() {
                           checked={checked}
                           onChange={() => toggleSelect(c.id)}
                           onClick={(e) => e.stopPropagation()}
-                          aria-label={`选择 ${c.repo_full_name}`}
+                          aria-label={`選擇 ${c.repo_full_name}`}
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -299,7 +299,7 @@ export function EcosystemResearchPage() {
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {c.shallow_summary || c.one_line_summary || c.description || '暂无描述'}
+                            {c.shallow_summary || c.one_line_summary || c.description || '暫無描述'}
                           </p>
                           {c.topics && c.topics.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1.5">

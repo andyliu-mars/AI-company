@@ -32,7 +32,7 @@ import { LanguageContext, type Lang, useT } from '@/i18n';
 export function SettingsPage() {
   const t = useT();
 
-  // 通用设置
+  // 通用設定
   const [projectName, setProjectName] = useState('AI Team OS');
   const [projectDesc, setProjectDesc] = useState(t.settings.defaultProjectDesc);
   const [darkMode, setDarkMode] = useState(false);
@@ -43,7 +43,7 @@ export function SettingsPage() {
     if (v && langCtx) langCtx.switchLang(v as Lang);
   };
 
-  // 基础设施设置
+  // 基礎設施設定
   const [storageBackend, setStorageBackend] = useState('sqlite');
   const [dbUrl, setDbUrl] = useState('sqlite:///data/aiteam.db');
   const [cacheBackend, setCacheBackend] = useState('memory');
@@ -52,7 +52,7 @@ export function SettingsPage() {
   const [apiPort, setApiPort] = useState('8000');
   const [dashboardPort, setDashboardPort] = useState('5173');
 
-  // 唤醒设置
+  // 喚醒設定
   const { data: wakeConfig } = useWakeConfig();
   const updateWakeConfig = useUpdateWakeConfig();
   const [wakeInterval, setWakeInterval] = useState<WakeConfig['interval'] | null>(null);
@@ -81,14 +81,14 @@ export function SettingsPage() {
     );
   };
 
-  // 团队配置
+  // 團隊配置
   const { data: teamDefaults, isLoading: teamDefaultsLoading } = useTeamDefaults();
   const updateDefaults = useUpdateTeamDefaults();
   const addMember = useAddPermanentMember();
   const removeMember = useRemovePermanentMember();
   const toggleMember = useTogglePermanentMember();
 
-  // 团队模板
+  // 團隊模板
   const { data: teamTemplates, isLoading: templatesLoading } = useTeamTemplates();
 
   const [autoCreateTeam, setAutoCreateTeam] = useState<boolean | null>(null);
@@ -229,7 +229,7 @@ export function SettingsPage() {
           <TabsTrigger value={4}>{t.settings.tabAbout}</TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: 通用设置 */}
+        {/* Tab 1: 通用設定 */}
         <TabsContent value={0}>
           <Card>
             <CardHeader>
@@ -295,7 +295,7 @@ export function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Tab 2: 基础设施 */}
+        {/* Tab 2: 基礎設施 */}
         <TabsContent value={1}>
           <div className="space-y-4">
             <Card>
@@ -413,7 +413,7 @@ export function SettingsPage() {
           </div>
         </TabsContent>
 
-        {/* Tab 3: 团队配置 */}
+        {/* Tab 3: 團隊配置 */}
         <TabsContent value={2}>
           <div className="space-y-4">
             <Card>
@@ -536,9 +536,9 @@ export function SettingsPage() {
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="claude-opus-4-7">Claude Opus 4.7（最强，复杂推理）</SelectItem>
-                                    <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6（均衡，默认推荐）</SelectItem>
-                                    <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5（快/经济）</SelectItem>
+                                    <SelectItem value="claude-opus-4-7">Claude Opus 4.7（最強，複雜推理）</SelectItem>
+                                    <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6（均衡，預設推薦）</SelectItem>
+                                    <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5（快/經濟）</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
@@ -590,7 +590,7 @@ export function SettingsPage() {
                   </div>
                 )}
 
-                {/* 新增成员行 */}
+                {/* 新增成員行 */}
                 {newMember && (
                   <div className="flex items-center gap-3 rounded-lg border border-dashed p-3">
                     <div className="grid flex-1 gap-2">
@@ -620,9 +620,9 @@ export function SettingsPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="claude-opus-4-7">Claude Opus 4.7（最强，复杂推理）</SelectItem>
-                            <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6（均衡，默认推荐）</SelectItem>
-                            <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5（快/经济）</SelectItem>
+                            <SelectItem value="claude-opus-4-7">Claude Opus 4.7（最強，複雜推理）</SelectItem>
+                            <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6（均衡，預設推薦）</SelectItem>
+                            <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5（快/經濟）</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -660,7 +660,7 @@ export function SettingsPage() {
           </div>
         </TabsContent>
 
-        {/* Tab 4: 唤醒设置 */}
+        {/* Tab 4: 喚醒設定 */}
         <TabsContent value={3}>
           <Card>
             <CardHeader>
@@ -726,7 +726,7 @@ export function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Tab 5: 关于 */}
+        {/* Tab 5: 關於 */}
         <TabsContent value={4}>
           <Card>
             <CardHeader>

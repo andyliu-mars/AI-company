@@ -7,7 +7,7 @@ interface CapabilityTagsProps {
   tags: EcosystemTag[];
 }
 
-/** 标签分类的色彩 + 图标映射 */
+/** 標籤分類的色彩 + 圖示對映 */
 function categoryStyle(category: string): { className: string; label: string; Icon: typeof Tag } {
   switch (category) {
     case 'capability':
@@ -28,7 +28,7 @@ function categoryStyle(category: string): { className: string; label: string; Ic
       return {
         className:
           'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-800',
-        label: '风险',
+        label: '風險',
         Icon: ShieldAlert,
       };
     default:
@@ -40,16 +40,16 @@ function categoryStyle(category: string): { className: string; label: string; Ic
   }
 }
 
-/** 来源中文映射 */
+/** 來源中文對映 */
 const SOURCE_LABELS: Record<string, string> = {
   github_topic: 'GitHub Topic',
-  auto_rule: '自动规则',
-  llm: 'LLM 推断',
-  manual: '人工标注',
+  auto_rule: '自動規則',
+  llm: 'LLM 推斷',
+  manual: '人工標註',
 };
 
 /**
- * 能力标签展示 — 按 category 分组，confidence 决定不透明度。
+ * 能力標籤展示 — 按 category 分組，confidence 決定不透明度。
  */
 export function CapabilityTags({ tags }: CapabilityTagsProps) {
   if (!tags || tags.length === 0) {
@@ -58,24 +58,24 @@ export function CapabilityTags({ tags }: CapabilityTagsProps) {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Tag className="h-4 w-4" aria-hidden="true" />
-            能力标签
+            能力標籤
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground flex items-center gap-2">
           <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-          暂无能力标签 — 等待 ecosystem-tagger 处理。
+          暫無能力標籤 — 等待 ecosystem-tagger 處理。
         </CardContent>
       </Card>
     );
   }
 
-  // 按 category 分组
+  // 按 category 分組
   const grouped = tags.reduce<Record<string, EcosystemTag[]>>((acc, t) => {
     (acc[t.category] ??= []).push(t);
     return acc;
   }, {});
 
-  // 分类显示顺序
+  // 分類顯示順序
   const categoryOrder = ['capability', 'maturity', 'risk'];
   const sortedCategories = Object.keys(grouped).sort((a, b) => {
     const ai = categoryOrder.indexOf(a);
@@ -88,7 +88,7 @@ export function CapabilityTags({ tags }: CapabilityTagsProps) {
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Tag className="h-4 w-4" aria-hidden="true" />
-          能力标签 ({tags.length})
+          能力標籤 ({tags.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">

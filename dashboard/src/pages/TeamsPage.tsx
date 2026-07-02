@@ -135,7 +135,7 @@ export function TeamsPage() {
                           <Badge
                             variant="outline"
                             className="border-violet-400 text-violet-600 text-[10px]"
-                            title="CC Workflow（ultracode）自动追踪的运行，非手动团队"
+                            title="CC Workflow（ultracode）自動追蹤的執行，非手動團隊"
                           >
                             工作流
                           </Badge>

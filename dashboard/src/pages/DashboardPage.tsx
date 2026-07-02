@@ -54,7 +54,7 @@ function StatCard({
   );
 }
 
-/** 活跃项目指挥卡片 */
+/** 活躍專案指揮卡片 */
 function ActiveProjectCard({
   project,
   status,
@@ -89,7 +89,7 @@ function ActiveProjectCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* 进度条 */}
+        {/* 進度條 */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{t.dashboard.taskProgress(completed, total)}</span>
@@ -102,7 +102,7 @@ function ActiveProjectCard({
             />
           </div>
         </div>
-        {/* Agent状态 */}
+        {/* Agent狀態 */}
         <p className="text-xs text-muted-foreground">
           {busyAgents > 0
             ? t.dashboard.agentsWorking(busyAgents)
@@ -122,7 +122,7 @@ function ActiveProjectCard({
   );
 }
 
-/** 解析event source为可读名称 */
+/** 解析event source為可讀名稱 */
 function formatEventSource(
   evt: { source?: string; data?: Record<string, unknown> },
   t: ReturnType<typeof useT>,
@@ -136,7 +136,7 @@ function formatEventSource(
   return source;
 }
 
-/** Agent状态点 */
+/** Agent狀態點 */
 function AgentDot({ status }: { status: string }) {
   if (status === 'busy') return <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />;
   if (status === 'waiting') return <span className="h-2 w-2 rounded-full bg-yellow-400 inline-block" />;
@@ -169,12 +169,12 @@ function getDeptPrefix(name: string): string {
   return 'other';
 }
 
-/** 团队Agent状态概览（按部门分组） */
+/** 團隊Agent狀態概覽（按部門分組） */
 function TeamAgentOverview({ agents, teamName }: { agents: Agent[]; teamName: string }) {
   const t = useT();
   if (agents.length === 0) return null;
 
-  // 按部门前缀分组
+  // 按部門字首分組
   const groups = new Map<string, Agent[]>();
   for (const agent of agents) {
     const dept = getDeptPrefix(agent.name);
@@ -223,7 +223,7 @@ function TeamAgentOverview({ agents, teamName }: { agents: Agent[]; teamName: st
   );
 }
 
-/** 待处理决策队列 */
+/** 待處理決策佇列 */
 function BlockedTaskQueue({ blockedTasks }: { blockedTasks: Array<Task & { teamName: string }> }) {
   const t = useT();
   return (
@@ -294,15 +294,15 @@ export function DashboardPage() {
     if (s) statusMap.set(team.id, s);
   });
 
-  // 聚合统计
+  // 聚合統計
   let totalAgents = 0;
   let hookAgents = 0;
   let activeTasks = 0;
   let completedTasks = 0;
 
-  // 所有agent（含团队名）
+  // 所有agent（含團隊名）
   const allAgentsWithTeam: Array<{ agent: Agent; teamName: string }> = [];
-  // 所有任务（含团队名）
+  // 所有任務（含團隊名）
   const allTasksWithTeam: Array<Task & { teamName: string }> = [];
 
   for (const [, s] of statusMap) {
@@ -318,10 +318,10 @@ export function DashboardPage() {
     }
   }
 
-  // blocked任务 → 待处理决策队列
+  // blocked任務 → 待處理決策佇列
   const blockedTasks = allTasksWithTeam.filter((t) => t.status === 'blocked');
 
-  // 有活跃任务的项目（用于指挥中心卡片）
+  // 有活躍任務的專案（用於指揮中心卡片）
   const projectTeamMap = new Map<string, TeamStatus>();
   for (const team of teams) {
     if (team.project_id) {
@@ -330,7 +330,7 @@ export function DashboardPage() {
     }
   }
 
-  // 活跃团队的agents（用于概览）
+  // 活躍團隊的agents（用於概覽）
   const activeTeamAgents: Array<{ teamName: string; agents: Agent[] }> = [];
   for (const team of teams) {
     if (team.status === 'active') {
@@ -416,7 +416,7 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* 待处理决策 + 系统健康 */}
+      {/* 待處理決策 + 系統健康 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <BlockedTaskQueue blockedTasks={blockedTasks} />
 
@@ -470,7 +470,7 @@ export function DashboardPage() {
         </Card>
       </div>
 
-      {/* 团队Agent状态概览 */}
+      {/* 團隊Agent狀態概覽 */}
       {activeTeamAgents.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
@@ -500,7 +500,7 @@ export function DashboardPage() {
         </Card>
       )}
 
-      {/* 活跃项目卡片区 */}
+      {/* 活躍專案卡片區 */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -553,7 +553,7 @@ export function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* 近期活动 */}
+      {/* 近期活動 */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

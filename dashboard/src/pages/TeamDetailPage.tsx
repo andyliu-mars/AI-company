@@ -562,9 +562,9 @@ export function TeamDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="claude-opus-4-7">Claude Opus 4.7（最强，复杂推理）</SelectItem>
-                    <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6（均衡，默认推荐）</SelectItem>
-                    <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5（快/经济）</SelectItem>
+                    <SelectItem value="claude-opus-4-7">Claude Opus 4.7（最強，複雜推理）</SelectItem>
+                    <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6（均衡，預設推薦）</SelectItem>
+                    <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5（快/經濟）</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

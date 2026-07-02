@@ -11,18 +11,18 @@ import {
 import type { EcosystemFilters, EcosystemFacetCounts } from '@/api/ecosystem';
 
 interface FilterBarProps {
-  /** 当前筛选条件 */
+  /** 當前篩選條件 */
   filters: EcosystemFilters;
-  /** 筛选条件变更回调 */
+  /** 篩選條件變更回撥 */
   onChange: (next: EcosystemFilters) => void;
-  /** 命中数量（用于展示） */
+  /** 命中數量（用於展示） */
   totalCount?: number;
-  /** 后端 facet 聚合（启用时类别筛选项后跟数量） */
+  /** 後端 facet 聚合（啟用時類別篩選項後跟數量） */
   facetCounts?: EcosystemFacetCounts;
 }
 
 const STAR_OPTIONS: { value: number; label: string }[] = [
-  { value: 0, label: '不限星标' },
+  { value: 0, label: '不限星標' },
   { value: 100, label: '≥ 100' },
   { value: 1000, label: '≥ 1k' },
   { value: 5000, label: '≥ 5k' },
@@ -33,9 +33,9 @@ const STAR_OPTIONS: { value: number; label: string }[] = [
 const ALL = '__all__';
 
 /**
- * 列表页筛选栏 — 关键词搜索 + Topics 多选 + 星标阈值 + 深扫状态。
- * v1.6.0：删除"类别"单选（启发式分类废弃），改为 GitHub topics 多选筛选（客户端 filter）。
- * 移动端单列堆叠，桌面端横向铺开。
+ * 列表頁篩選欄 — 關鍵詞搜尋 + Topics 多選 + 星標閾值 + 深掃狀態。
+ * v1.6.0：刪除"類別"單選（啟發式分類廢棄），改為 GitHub topics 多選篩選（客戶端 filter）。
+ * 移動端單列堆疊，桌面端橫向鋪開。
  */
 export function FilterBar({ filters, onChange, totalCount, facetCounts }: FilterBarProps) {
   const topicFacets = facetCounts?.topics ?? {};
@@ -47,7 +47,7 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
     onChange({ limit: filters.limit ?? 200 });
   };
 
-  // v1.6.0：默认全集（含已删除，因数量极少），勾选则切换为"仅已删除"视图
+  // v1.6.0：預設全集（含已刪除，因數量極少），勾選則切換為"僅已刪除"檢視
   const onlyDeleted = filters.isDeleted === true;
   const selectedTopics = filters.topics ?? [];
 
@@ -60,30 +60,30 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
       onlyDeleted,
   );
 
-  // 按数量降序排序 topics，取 top 50（避免 2425 个全部塞进 dropdown）
+  // 按數量降序排序 topics，取 top 50（避免 2425 個全部塞進 dropdown）
   const sortedTopics = useMemo(() => {
     return Object.entries(topicFacets)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 50);
   }, [topicFacets]);
 
-  // 星标 trigger 显示文本
+  // 星標 trigger 顯示文本
   const minStarsValue = filters.minStars ?? 0;
-  const starLabel = STAR_OPTIONS.find((o) => o.value === minStarsValue)?.label ?? '不限星标';
+  const starLabel = STAR_OPTIONS.find((o) => o.value === minStarsValue)?.label ?? '不限星標';
 
-  // 研究阶段 trigger 显示文本（v1.5.1：3 类互斥，语义对齐 StatsBar）
+  // 研究階段 trigger 顯示文本（v1.5.1：3 類互斥，語義對齊 StatsBar）
   const STAGE_LABELS: Record<string, string> = {
-    queued: '待浅扫',
-    shallow_done: '已浅扫未研究',
+    queued: '待淺掃',
+    shallow_done: '已淺掃未研究',
     'architecture_done,debated,referenced,integrated': '已被研究',
   };
   const stageLabel = filters.stageStatus
     ? (STAGE_LABELS[filters.stageStatus] ?? filters.stageStatus)
-    : '全部仓';
+    : '全部倉';
 
   return (
     <div className="flex flex-col gap-3 p-4 border-b bg-muted/20">
-      {/* 第一行：搜索框 + 命中计数 */}
+      {/* 第一行：搜尋框 + 命中計數 */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
           <Search
@@ -91,35 +91,35 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
             aria-hidden="true"
           />
           <Input
-            placeholder="搜索仓库名 / owner / 描述..."
+            placeholder="搜尋倉庫名 / owner / 描述..."
             value={filters.keyword ?? ''}
             onChange={(e) => update({ keyword: e.target.value })}
             className="pl-9 h-9"
-            aria-label="搜索仓库"
+            aria-label="搜尋倉庫"
           />
         </div>
         {typeof totalCount === 'number' && (
           <div className="text-sm text-muted-foreground whitespace-nowrap">
-            共 <span className="font-semibold text-foreground">{totalCount}</span> 个仓库
+            共 <span className="font-semibold text-foreground">{totalCount}</span> 個倉庫
           </div>
         )}
       </div>
 
-      {/* 第二行：维度筛选 */}
+      {/* 第二行：維度篩選 */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* v1.6.0: Topics 多选筛选（替换原 relevance_category 单选） */}
+        {/* v1.6.0: Topics 多選篩選（替換原 relevance_category 單選） */}
         <TopicsMultiSelect
           options={sortedTopics}
           selected={selectedTopics}
           onChange={(next) => update({ topics: next.length > 0 ? next : undefined })}
         />
 
-        {/* 星标阈值 */}
+        {/* 星標閾值 */}
         <Select
           value={String(minStarsValue)}
           onValueChange={(v) => update({ minStars: Number(v) })}
         >
-          <SelectTrigger className="h-8 min-w-[140px] text-sm" aria-label="星标阈值">
+          <SelectTrigger className="h-8 min-w-[140px] text-sm" aria-label="星標閾值">
             <Star className="mr-1.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span className="truncate">{starLabel}</span>
           </SelectTrigger>
@@ -132,7 +132,7 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
           </SelectContent>
         </Select>
 
-        {/* 研究阶段（v1.5.0 漏斗，v1.5.1 加语义说明）*/}
+        {/* 研究階段（v1.5.0 漏斗，v1.5.1 加語義說明）*/}
         <Select
           value={filters.stageStatus || ALL}
           onValueChange={(v) =>
@@ -143,53 +143,53 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
         >
           <SelectTrigger
             className="h-8 min-w-[170px] text-sm"
-            aria-label="研究阶段"
-            title="浅扫=读 README/CHANGELOG 摘要功能与方向；研究=按需调研代码结构与设计，含相关性与采纳记录"
+            aria-label="研究階段"
+            title="淺掃=讀 README/CHANGELOG 摘要功能與方向；研究=按需調研程式碼結構與設計，含相關性與採納記錄"
           >
             <span className="truncate">{stageLabel}</span>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>全部仓</SelectItem>
+            <SelectItem value={ALL}>全部倉</SelectItem>
             <SelectItem value="queued">
               <span className="flex flex-col">
-                <span>待浅扫</span>
-                <span className="text-[10px] text-muted-foreground">尚未读 README/CHANGELOG</span>
+                <span>待淺掃</span>
+                <span className="text-[10px] text-muted-foreground">尚未讀 README/CHANGELOG</span>
               </span>
             </SelectItem>
             <SelectItem value="shallow_done">
               <span className="flex flex-col">
-                <span>已浅扫未研究</span>
-                <span className="text-[10px] text-muted-foreground">已摘要功能/设计方向</span>
+                <span>已淺掃未研究</span>
+                <span className="text-[10px] text-muted-foreground">已摘要功能/設計方向</span>
               </span>
             </SelectItem>
             <SelectItem value="architecture_done,debated,referenced,integrated">
               <span className="flex flex-col">
                 <span>已被研究</span>
-                <span className="text-[10px] text-muted-foreground">为系统改动做过调研</span>
+                <span className="text-[10px] text-muted-foreground">為系統改動做過調研</span>
               </span>
             </SelectItem>
           </SelectContent>
         </Select>
 
-        {/* v1.6.0：替代被删除的"已删除" tab — 切换"仅看已删除"视图 */}
+        {/* v1.6.0：替代被刪除的"已刪除" tab — 切換"僅看已刪除"檢視 */}
         <label
           className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none h-8 px-2 rounded-md hover:bg-muted/40"
-          title="勾选后仅显示已被检测为删除/转为私有的仓（默认视图包含全部仓）"
+          title="勾選後僅顯示已被檢測為刪除/轉為私有的倉（預設檢視包含全部倉）"
         >
           <input
             type="checkbox"
             checked={onlyDeleted}
             onChange={(e) =>
-              // 勾选 → isDeleted=true（仅已删除）；取消 → undefined（全集，默认）
+              // 勾選 → isDeleted=true（僅已刪除）；取消 → undefined（全集，預設）
               update({ isDeleted: e.target.checked ? true : undefined })
             }
             className="h-3.5 w-3.5 rounded border-border accent-primary"
-            aria-label="仅看已删除仓"
+            aria-label="僅看已刪除倉"
           />
-          仅看已删除
+          僅看已刪除
         </label>
 
-        {/* TODO(Stage E v2): 增加 has_deep_review / is_archived / tags 多选筛选 */}
+        {/* TODO(Stage E v2): 增加 has_deep_review / is_archived / tags 多選篩選 */}
 
         {hasActiveFilter && (
           <Button
@@ -197,7 +197,7 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
             size="sm"
             onClick={resetAll}
             className="h-8 ml-auto text-muted-foreground"
-            aria-label="清除所有筛选"
+            aria-label="清除所有篩選"
           >
             <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
             清除
@@ -209,8 +209,8 @@ export function FilterBar({ filters, onChange, totalCount, facetCounts }: Filter
 }
 
 /**
- * Topics 多选下拉 — 显示带数量的 topic 列表，支持搜索过滤。
- * v1.6.0: 替代原 relevance_category 单选；用 facet_counts.topics 作为选项数据源。
+ * Topics 多選下拉 — 顯示帶數量的 topic 列表，支援搜尋過濾。
+ * v1.6.0: 替代原 relevance_category 單選；用 facet_counts.topics 作為選項資料來源。
  */
 function TopicsMultiSelect({
   options,
@@ -225,7 +225,7 @@ function TopicsMultiSelect({
   const [query, setQuery] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // 点击外部关闭
+  // 點選外部關閉
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
@@ -253,7 +253,7 @@ function TopicsMultiSelect({
       ? '全部 Topics'
       : selected.length === 1
         ? selected[0]
-        : `${selected.length} 个 Topics`;
+        : `${selected.length} 個 Topics`;
 
   return (
     <div ref={rootRef} className="relative">
@@ -263,7 +263,7 @@ function TopicsMultiSelect({
         size="sm"
         className="h-8 min-w-[170px] justify-between text-sm font-normal"
         onClick={() => setOpen((v) => !v)}
-        aria-label="筛选 Topics（多选）"
+        aria-label="篩選 Topics（多選）"
         aria-expanded={open}
       >
         <span className="flex items-center gap-1.5 truncate">
@@ -277,7 +277,7 @@ function TopicsMultiSelect({
           <div className="p-2 border-b">
             <Input
               autoFocus
-              placeholder="搜索 topic..."
+              placeholder="搜尋 topic..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="h-7 text-xs"
@@ -285,7 +285,7 @@ function TopicsMultiSelect({
             {selected.length > 0 && (
               <div className="flex items-center justify-between mt-1.5">
                 <span className="text-[10px] text-muted-foreground">
-                  已选 {selected.length} 个
+                  已選 {selected.length} 個
                 </span>
                 <button
                   type="button"
@@ -299,7 +299,7 @@ function TopicsMultiSelect({
           </div>
           <div className="max-h-72 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-3">无匹配 topic</p>
+              <p className="text-xs text-muted-foreground text-center py-3">無匹配 topic</p>
             ) : (
               filtered.map(([topic, count]) => {
                 const isSelected = selected.includes(topic);

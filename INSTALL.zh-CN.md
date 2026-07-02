@@ -1,28 +1,28 @@
-# AI Team OS 安装指南（供 Claude Code 阅读）
+# AI Team OS 安裝指南（供 Claude Code 閱讀）
 
-本文件供 Claude Code (CC) 辅助安装时阅读。如果你是人类用户，请查看 [README.zh-CN.md](README.zh-CN.md)。
-
----
-
-## 安装前检查
-
-安装前请验证 Python 环境：
-
-1. 运行：`python -c "import sys; print(sys.executable); print(sys.prefix); print(sys.base_prefix)"`
-2. 如果输出中 `sys.prefix` 包含 `.venv`、`virtualenv` 或 `env` 路径，**警告用户**：
-
-   > ⚠️ 警告：你当前处于虚拟环境中（`{sys.prefix}`）。
-   > AI Team OS 应安装到系统 Python，而非项目 venv。
-   > 如果安装在 venv 中，hook 脚本在其他项目中将无法工作。
-   > 请先执行 `deactivate`，或打开一个没有 venv 的新终端，然后重新安装。
-
-3. 确认 `sys.prefix == sys.base_prefix` — 表示当前在系统 Python 中，可以安全安装。
+本檔案供 Claude Code (CC) 輔助安裝時閱讀。如果你是人類使用者，請檢視 [README.zh-CN.md](README.zh-CN.md)。
 
 ---
 
-## 必需：配置设置
+## 安裝前檢查
 
-AI Team OS 需要在 `~/.claude/settings.json` 中配置特定设置。**运行以下脚本自动完成配置**：
+安裝前請驗證 Python 環境：
+
+1. 執行：`python -c "import sys; print(sys.executable); print(sys.prefix); print(sys.base_prefix)"`
+2. 如果輸出中 `sys.prefix` 包含 `.venv`、`virtualenv` 或 `env` 路徑，**警告使用者**：
+
+   > ⚠️ 警告：你當前處於虛擬環境中（`{sys.prefix}`）。
+   > AI Team OS 應安裝到系統 Python，而非專案 venv。
+   > 如果安裝在 venv 中，hook 指令碼在其他專案中將無法工作。
+   > 請先執行 `deactivate`，或開啟一個沒有 venv 的新終端，然後重新安裝。
+
+3. 確認 `sys.prefix == sys.base_prefix` — 表示當前在系統 Python 中，可以安全安裝。
+
+---
+
+## 必需：配置設定
+
+AI Team OS 需要在 `~/.claude/settings.json` 中配置特定設定。**執行以下指令碼自動完成配置**：
 
 ```bash
 python -c "
@@ -38,111 +38,111 @@ if os.path.exists(p):
 
 changed = False
 
-# 1. 启用 Agent Teams（团队协作必需）
+# 1. 啟用 Agent Teams（團隊協作必需）
 env = settings.setdefault('env', {})
 if env.get('CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS') != '1':
     env['CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS'] = '1'
     changed = True
-    print('[OK] Agent Teams 已启用')
+    print('[OK] Agent Teams 已啟用')
 
-# 2. effortLevel — 由用户自行选择，不自动设置
+# 2. effortLevel — 由使用者自行選擇，不自動設定
 
 if changed:
     with open(p, 'w') as f:
         json.dump(settings, f, indent=2, ensure_ascii=False)
-    print('[完成] 设置已更新 — 请告知用户重启 Claude Code')
+    print('[完成] 設定已更新 — 請告知使用者重啟 Claude Code')
 else:
-    print('[OK] 所有设置已就绪')
+    print('[OK] 所有設定已就緒')
 "
 ```
 
-**运行后，告知用户重启 Claude Code** 以使设置生效。
+**執行後，告知使用者重啟 Claude Code** 以使設定生效。
 
 ---
 
-## 安装步骤
+## 安裝步驟
 
-### 方式 A：插件安装（推荐）
+### 方式 A：外掛安裝（推薦）
 
 ```bash
-# 添加 marketplace 源并安装插件
+# 新增 marketplace 源並安裝外掛
 claude plugin marketplace add CronusL-1141/AI-company
 claude plugin install ai-team-os
 
-# 重启 Claude Code
-# 首次启动约需30秒配置依赖（仅一次）
+# 重啟 Claude Code
+# 首次啟動約需30秒配置依賴（僅一次）
 ```
 
-### 方式 B：从源码安装
+### 方式 B：從原始碼安裝
 
 ```bash
-# 克隆仓库
+# 克隆倉庫
 git clone https://github.com/CronusL-1141/AI-company.git
 cd AI-company
 
-# 运行安装程序（配置 MCP + Hooks + Agent 模板）
+# 執行安裝程式（配置 MCP + Hooks + Agent 模板）
 python install.py
 
-# 重启 Claude Code
+# 重啟 Claude Code
 ```
 
-### 方式 C：pip 安装（PyPI）
+### 方式 C：pip 安裝（PyPI）
 
 ```bash
-# 从 PyPI 安装
+# 從 PyPI 安裝
 pip install ai-team-os
 
-# 运行安装后配置脚本（必需 — 设置 MCP + hooks 配置）
+# 執行安裝後配置指令碼（必需 — 設定 MCP + hooks 配置）
 python -m aiteam.cli.app init
 
-# 重启 Claude Code
+# 重啟 Claude Code
 ```
 
 ---
 
-## 验证安装
+## 驗證安裝
 
-重启 Claude Code 后：
+重啟 Claude Code 後：
 
-1. 运行 `/mcp` — `ai-team-os` 应显示为已连接，约 107 个工具
-2. 运行 `os_health_check` MCP 工具 — 预期响应：`{"status": "ok"}`
-3. 检查 API：`curl http://localhost:8000/api/health` — 预期：`{"status": "ok"}`
+1. 執行 `/mcp` — `ai-team-os` 應顯示為已連線，約 107 個工具
+2. 執行 `os_health_check` MCP 工具 — 預期響應：`{"status": "ok"}`
+3. 檢查 API：`curl http://localhost:8000/api/health` — 預期：`{"status": "ok"}`
 
-如果工具未显示，检查：
-- Windows：`%USERPROFILE%\.claude\settings.json` — 查找 `mcpServers` 中的 `ai-team-os`
+如果工具未顯示，檢查：
+- Windows：`%USERPROFILE%\.claude\settings.json` — 查詢 `mcpServers` 中的 `ai-team-os`
 - macOS/Linux：`~/.claude/settings.json`
 
 ---
 
 ## 已知限制
 
-- **不要在项目 `.venv` 中安装** — 全局 hook 脚本依赖系统 Python。在 venv 中安装意味着 AI Team OS 仅在该 venv 激活时可用。
-- 如果误装在 venv 中：`pip uninstall ai-team-os`，然后 `deactivate`，然后重装。
+- **不要在專案 `.venv` 中安裝** — 全域性 hook 指令碼依賴系統 Python。在 venv 中安裝意味著 AI Team OS 僅在該 venv 啟用時可用。
+- 如果誤裝在 venv 中：`pip uninstall ai-team-os`，然後 `deactivate`，然後重灌。
 - 需要 Python >= 3.11。
-- 需要支持 MCP 的 Claude Code（CC 版本 >= 1.0）。
+- 需要支援 MCP 的 Claude Code（CC 版本 >= 1.0）。
 
 ---
 
 ## 更新
 
 ```bash
-# 插件安装：
+# 外掛安裝：
 claude plugin update ai-team-os@ai-team-os
 
-# 手动/pip 安装：
+# 手動/pip 安裝：
 pip install --upgrade ai-team-os
 ```
 
-## 卸载
+## 解除安裝
 
 ```bash
-# 插件安装：
+# 外掛安裝：
 claude plugin uninstall ai-team-os
 
-# 手动安装：
+# 手動安裝：
 python scripts/uninstall.py
 
-# 清理残留数据：
+# 清理殘留資料：
 # Windows: rmdir /s %USERPROFILE%\.claude\plugins\data\ai-team-os-ai-team-os
 # macOS/Linux: rm -rf ~/.claude/plugins/data/ai-team-os-*
 ```

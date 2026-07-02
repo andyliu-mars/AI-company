@@ -25,7 +25,7 @@ function StatusBadge({ status }: { status: string }) {
     case 'approved':
       return <Badge variant="outline" className="text-[10px] border-blue-400 text-blue-600">已批准</Badge>;
     case 'running':
-      return <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-600">运行中</Badge>;
+      return <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-600">執行中</Badge>;
     case 'completed':
       return <Badge variant="outline" className="text-[10px] border-green-400 text-green-600">已完成</Badge>;
     case 'cancelled':
@@ -102,7 +102,7 @@ function BatchRow({ batch, onApprove, onCancel }: {
 }
 
 /**
- * 浅扫批次列表页 — 列出所有批次，pending_approval 状态高亮，支持批准/取消操作。
+ * 淺掃批次列表頁 — 列出所有批次，pending_approval 狀態高亮，支援批准/取消操作。
  * 路由: /ecosystem/batches
  */
 export function EcosystemBatchesPage() {
@@ -117,13 +117,13 @@ export function EcosystemBatchesPage() {
 
   const handleCreate = () => {
     createBatch.mutate(
-      { triggered_by: 'user', trigger_reason: '手动触发浅扫批次' },
+      { triggered_by: 'user', trigger_reason: '手動觸發淺掃批次' },
       {
         onSuccess: (res) => {
           setActionMsg(res.message);
           setTimeout(() => setActionMsg(null), 4000);
         },
-        onError: () => setActionMsg('创建批次失败，请查看后端日志'),
+        onError: () => setActionMsg('建立批次失敗，請檢視後端日誌'),
       },
     );
   };
@@ -153,15 +153,15 @@ export function EcosystemBatchesPage() {
     <div className="p-6 space-y-4 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">浅扫批次</h1>
+          <h1 className="text-2xl font-bold">淺掃批次</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            管理浅扫候选仓批次 — 创建批次后批准方可触发 dispatch
+            管理淺掃候選倉批次 — 建立批次後批准方可觸發 dispatch
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-            刷新
+            重新整理
           </Button>
           <Button size="sm" onClick={handleCreate} disabled={createBatch.isPending}>
             {createBatch.isPending ? (
@@ -178,7 +178,7 @@ export function EcosystemBatchesPage() {
         <div className="flex items-center gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-md px-4 py-2 text-sm text-red-700 dark:text-red-400">
           <Clock className="w-4 h-4 flex-shrink-0" />
           <span>
-            有 <strong>{pendingCount}</strong> 个批次等待批准 — 点击行进入详情页批准
+            有 <strong>{pendingCount}</strong> 個批次等待批准 — 點選行進入詳情頁批准
           </span>
         </div>
       )}
@@ -192,10 +192,10 @@ export function EcosystemBatchesPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">
-            批次历史
+            批次歷史
             {batches.length > 0 && (
               <span className="ml-2 text-sm text-muted-foreground font-normal">
-                共 {batches.length} 条
+                共 {batches.length} 條
               </span>
             )}
           </CardTitle>
@@ -204,11 +204,11 @@ export function EcosystemBatchesPage() {
           {isLoading ? (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              加载中...
+              載入中...
             </div>
           ) : batches.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
-              暂无批次记录，点击"新建批次"创建第一个批次
+              暫無批次記錄，點選"新建批次"建立第一個批次
             </div>
           ) : (
             <Table>
@@ -216,10 +216,10 @@ export function EcosystemBatchesPage() {
                 <TableRow>
                   <TableHead className="w-8"></TableHead>
                   <TableHead>ID</TableHead>
-                  <TableHead>触发源</TableHead>
-                  <TableHead className="text-center">候选仓数</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>创建时间</TableHead>
+                  <TableHead>觸發源</TableHead>
+                  <TableHead className="text-center">候選倉數</TableHead>
+                  <TableHead>狀態</TableHead>
+                  <TableHead>建立時間</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>

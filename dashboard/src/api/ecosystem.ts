@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from './client';
 
-// 与后端 /api/ecosystem/profiles 返回格式对齐
+// 與後端 /api/ecosystem/profiles 返回格式對齊
 export interface EcosystemRepoProfile {
   id: string;
   repo_full_name: string;
@@ -14,19 +14,19 @@ export interface EcosystemRepoProfile {
   homepage: string | null;
   last_commit_at: string | null;
   needs_deep_review: boolean;
-  /** @deprecated v1.6.1: relevance_category 启发式分类已弃用，后端不再返回 */
+  /** @deprecated v1.6.1: relevance_category 啟發式分類已棄用，後端不再返回 */
   relevance_category?: string | null;
-  /** @deprecated v1.6.1: relevance_score 硬编码评分无参考价值，后端不再返回 */
+  /** @deprecated v1.6.1: relevance_score 硬編碼評分無參考價值，後端不再返回 */
   relevance_score?: number;
   one_line_summary: string | null;
   last_scanned_at: string;
   first_seen_at: string;
-  // Stage B 扩展字段（v2 API 返回时填充）
+  // Stage B 擴充套件欄位（v2 API 返回時填充）
   pushed_at?: string | null;
   is_archived?: boolean;
   scan_run_id?: string | null;
   description_excerpt?: string;
-  // v1.5.0-A 扩展字段（前端 stage 徽章 / failed 提示 / 活跃集 tab 依赖）
+  // v1.5.0-A 擴充套件欄位（前端 stage 徽章 / failed 提示 / 活躍集 tab 依賴）
   shallow_summary?: string;
   last_shallow_refreshed_at?: string | null;
   is_deleted?: boolean;
@@ -35,11 +35,11 @@ export interface EcosystemRepoProfile {
   fetch_failure_count?: number;
   /** @deprecated v1.6.0 P1.A: 使用 last_active_status 替代（'active' / 'archived' / 'manual_archived' / 'pinned'） */
   is_active?: boolean;
-  /** @deprecated v1.6.0 P1.A: 排名机制已废弃，使用 last_active_status + manual_status 表达活跃度 */
+  /** @deprecated v1.6.0 P1.A: 排名機制已廢棄，使用 last_active_status + manual_status 表達活躍度 */
   active_rank?: number | null;
-  // v1.5.1：透出渐进漏斗 stage 状态（取自 latest deep_review，无 review = "queued"）
+  // v1.5.1：透出漸進漏斗 stage 狀態（取自 latest deep_review，無 review = "queued"）
   stage_status?: string | null;
-  // v1.5.1：研究次数（关联的 deep_review 行数，0 = 未深扫）
+  // v1.5.1：研究次數（關聯的 deep_review 行數，0 = 未深掃）
   research_count?: number;
   // v1.6.0：last_active_status — 'active' / 'archived' / 'manual_archived' / 'pinned' / null
   last_active_status?: string | null;
@@ -50,7 +50,7 @@ export interface EcosystemRepoProfile {
   source_kind?: string;
 }
 
-// v1.5.0 漏斗 stage 状态
+// v1.5.0 漏斗 stage 狀態
 export const ECOSYSTEM_STAGE_STATUSES = [
   'queued',
   'shallow_done',
@@ -65,20 +65,20 @@ export const ECOSYSTEM_STAGE_STATUSES = [
 
 export type EcosystemStageStatus = (typeof ECOSYSTEM_STAGE_STATUSES)[number];
 
-/** stage 中文标签 */
+/** stage 中文標籤 */
 export const STAGE_STATUS_LABELS: Record<EcosystemStageStatus, string> = {
-  queued: '待浅扫',
-  shallow_done: '浅扫完成',
-  shallow_failed: '浅扫失败',
-  architecture_done: '架构已分析',
-  architecture_failed: '架构失败',
-  debated: '已辩论',
-  debated_failed: '辩论失败',
-  referenced: '✓ 参考',
-  integrated: '★ 已集成',
+  queued: '待淺掃',
+  shallow_done: '淺掃完成',
+  shallow_failed: '淺掃失敗',
+  architecture_done: '架構已分析',
+  architecture_failed: '架構失敗',
+  debated: '已辯論',
+  debated_failed: '辯論失敗',
+  referenced: '✓ 參考',
+  integrated: '★ 已整合',
 };
 
-/** stage 颜色（与设计稿 §8.1 对齐：灰/蓝/黄/橙/绿/紫/红） */
+/** stage 顏色（與設計稿 §8.1 對齊：灰/藍/黃/橙/綠/紫/紅） */
 export const STAGE_STATUS_TONE: Record<
   EcosystemStageStatus,
   'gray' | 'blue' | 'yellow' | 'orange' | 'green' | 'purple' | 'red'
@@ -94,7 +94,7 @@ export const STAGE_STATUS_TONE: Record<
   integrated: 'purple',
 };
 
-/** stage 徽章 className（Tailwind 同构色） */
+/** stage 徽章 className（Tailwind 同構色） */
 export function stageBadgeClass(stage: EcosystemStageStatus | string): string {
   const tone = STAGE_STATUS_TONE[stage as EcosystemStageStatus] ?? 'gray';
   switch (tone) {
@@ -121,10 +121,10 @@ export interface EcosystemFacetCounts {
   category: Record<string, number>;
   language: Record<string, number>;
   archived: Record<string, number>; // {"true": n, "false": n}
-  // v1.5.1：渐进漏斗 stage 分布（不被 limit 截断的全量统计）
+  // v1.5.1：漸進漏斗 stage 分佈（不被 limit 截斷的全量統計）
   // 例如：{"queued": 162, "shallow_done": 100, "debated": 3}
   stage?: Record<string, number>;
-  // v1.6.0 SST: GitHub topics 维度全量统计（取代基于启发式的 category）
+  // v1.6.0 SST: GitHub topics 維度全量統計（取代基於啟發式的 category）
   // 例如：{"mcp": 120, "claude-code": 80, "ai": 75, ...}
   topics?: Record<string, number>;
 }
@@ -141,9 +141,9 @@ export interface EcosystemProfilesResponse {
 export interface EcosystemFilters {
   keyword?: string;
   topic?: string;
-  /** @deprecated v1.6.0: relevance_category 启发式分类已废弃，UI 改用 topics 多选筛选 */
+  /** @deprecated v1.6.0: relevance_category 啟發式分類已廢棄，UI 改用 topics 多選篩選 */
   category?: string;
-  /** v1.6.0: GitHub topics 多选筛选（客户端 filter；与 profile.topics 求交集） */
+  /** v1.6.0: GitHub topics 多選篩選（客戶端 filter；與 profile.topics 求交集） */
   topics?: string[];
   minStars?: number;
   maxStars?: number;
@@ -151,15 +151,15 @@ export interface EcosystemFilters {
   limit?: number;
   offset?: number;
   facetCounts?: boolean;
-  // v1.5.0-E 新增：活跃/全量/已删除 tab + stage 维度筛选
+  // v1.5.0-E 新增：活躍/全量/已刪除 tab + stage 維度篩選
   isActive?: boolean | null;
   isDeleted?: boolean | null;
-  stageStatus?: string; // 多个用逗号分隔
+  stageStatus?: string; // 多個用逗號分隔
 }
 
 /**
- * 列表查询：检索生态仓档案。
- * 对接 GET /api/ecosystem/profiles
+ * 列表查詢：檢索生態倉檔案。
+ * 對接 GET /api/ecosystem/profiles
  */
 export function useEcosystemProfiles(filters: EcosystemFilters = {}) {
   const {
@@ -198,8 +198,8 @@ export function useEcosystemProfiles(filters: EcosystemFilters = {}) {
 }
 
 /**
- * 单仓档案 hook（基础信息）— 用于不需要深度档案的场景。
- * 通过 /profiles 列表回退查找（保持向后兼容）。
+ * 單倉檔案 hook（基礎資訊）— 用於不需要深度檔案的場景。
+ * 通過 /profiles 列表回退查詢（保持向後相容）。
  */
 export function useEcosystemRepoDetail(repoId: string | null) {
   return useQuery({
@@ -214,10 +214,10 @@ export function useEcosystemRepoDetail(repoId: string | null) {
 }
 
 // ============================================================
-// v2 API: 单仓全息详情 (BUG-023 修复)
+// v2 API: 單倉全息詳情 (BUG-023 修復)
 // ============================================================
 
-/** 能力 / 成熟度 / 风险 标签 */
+/** 能力 / 成熟度 / 風險 標籤 */
 export interface EcosystemTag {
   tag_id: string;
   name: string;
@@ -230,7 +230,7 @@ export interface EcosystemTag {
   created_at: string;
 }
 
-/** 深扫记录 */
+/** 深掃記錄 */
 export interface EcosystemDeepReview {
   id: string;
   repo_id: string;
@@ -248,7 +248,7 @@ export interface EcosystemDeepReview {
   started_at?: string | null;
   completed_at?: string | null;
   duration_seconds?: number;
-  // v1.5.0-A 字段（前端 timeline 依赖）
+  // v1.5.0-A 欄位（前端 timeline 依賴）
   stage_status?: EcosystemStageStatus | string;
   integration_md?: string;
   shallow_completed_at?: string | null;
@@ -259,7 +259,7 @@ export interface EcosystemDeepReview {
   integration_task_id?: string | null;
 }
 
-/** 仓与仓的关联关系 */
+/** 倉與倉的關聯關係 */
 export interface EcosystemRelation {
   id: string;
   source_repo_id: string;
@@ -272,17 +272,17 @@ export interface EcosystemRelation {
   created_at: string;
 }
 
-/** 扫描运行记录（与后端 /api/ecosystem/scan-runs 返回对齐） */
+/** 掃描執行記錄（與後端 /api/ecosystem/scan-runs 返回對齊） */
 export interface EcosystemScanRun {
   id: string;
   agent_id: string | null;
-  /** 后端原始字段（incremental / full / topic / trending 等） */
+  /** 後端原始欄位（incremental / full / topic / trending 等） */
   strategy: string;
-  /** 前端派生：等同 strategy（向后兼容 UI 字段名） */
+  /** 前端派生：等同 strategy（向後相容 UI 欄位名） */
   scan_type: string;
   started_at: string;
   completed_at: string | null;
-  /** 前端派生：completed_at != null → 'completed'，否则 'running'；errors 非空 → 'failed' */
+  /** 前端派生：completed_at != null → 'completed'，否則 'running'；errors 非空 → 'failed' */
   status: 'completed' | 'running' | 'failed' | string;
   duration_seconds?: number | null;
   repos_added: number;
@@ -295,7 +295,7 @@ export interface EcosystemScanRun {
   notes: string | null;
 }
 
-/** 后端 /api/ecosystem/scan-runs 原始响应（字段在 hook 中映射） */
+/** 後端 /api/ecosystem/scan-runs 原始響應（欄位在 hook 中對映） */
 interface ScanRunsApiResponse {
   runs: Array<{
     id: string;
@@ -315,7 +315,7 @@ interface ScanRunsApiResponse {
   total: number;
 }
 
-/** v2 全息响应 — 与后端 EcosystemRepoFullResponse 对齐 */
+/** v2 全息響應 — 與後端 EcosystemRepoFullResponse 對齊 */
 export interface EcosystemRepoFullResponse {
   profile: EcosystemRepoProfile;
   tags: EcosystemTag[];
@@ -325,22 +325,22 @@ export interface EcosystemRepoFullResponse {
   scan_run: EcosystemScanRun | null;
 }
 
-/** 深扫列表响应 — 用于统计真实 completed/running/failed 数 */
+/** 深掃列表響應 — 用於統計真實 completed/running/failed 數 */
 export interface EcosystemDeepReviewListResponse {
   reviews: EcosystemDeepReview[];
   total: number;
 }
 
 /**
- * 列出深扫记录，可按 status 过滤（completed / running / pending / failed / skipped）。
- * 用于 StatsBar 计算真实"已深扫"数量（语义 = DeepReview.status='completed' 的行数）。
+ * 列出深掃記錄，可按 status 過濾（completed / running / pending / failed / skipped）。
+ * 用於 StatsBar 計算真實"已深掃"數量（語義 = DeepReview.status='completed' 的行數）。
  *
- * 注意：profile.needs_deep_review 字段语义是"是否需要被深扫"，false 不等于"已完成深扫"。
- * 必须用本接口拉真实 DeepReview 行为准。
+ * 注意：profile.needs_deep_review 欄位語義是"是否需要被深掃"，false 不等於"已完成深掃"。
+ * 必須用本介面拉真實 DeepReview 行為準。
  */
 /**
- * GET /api/ecosystem/scan-runs?limit=N — 最近 N 次批次扫描记录（生态档案级）
- * 用于 EcosystemListPage 顶部展示"最近批次扫描"概览。
+ * GET /api/ecosystem/scan-runs?limit=N — 最近 N 次批次掃描記錄（生態檔案級）
+ * 用於 EcosystemListPage 頂部展示"最近批次掃描"概覽。
  * 返回按 started_at 倒序，最近一次 = list[0]。
  */
 export function useEcosystemRecentScanRuns(limit: number = 5) {
@@ -352,8 +352,8 @@ export function useEcosystemRecentScanRuns(limit: number = 5) {
       const body = await apiFetch<ScanRunsApiResponse>(
         `/api/ecosystem/scan-runs?${params.toString()}`,
       );
-      // 后端返回 {runs, total}，前端 hook 历来期望 {data, total}。
-      // 同时派生 scan_type（= strategy）与 status（completed_at + errors 推断）。
+      // 後端返回 {runs, total}，前端 hook 歷來期望 {data, total}。
+      // 同時派生 scan_type（= strategy）與 status（completed_at + errors 推斷）。
       const data: EcosystemScanRun[] = body.runs.map((r) => {
         const hasErrors = Array.isArray(r.errors) && r.errors.length > 0;
         const status: EcosystemScanRun['status'] = r.completed_at
@@ -379,7 +379,7 @@ export function useEcosystemDeepReviews(status: string = '') {
     queryFn: () => {
       const params = new URLSearchParams();
       if (status) params.set('status', status);
-      params.set('limit', '100'); // 后端上限 100；当前数据量 < 100 充足
+      params.set('limit', '100'); // 後端上限 100；當前資料量 < 100 充足
       return apiFetch<EcosystemDeepReviewListResponse>(
         `/api/ecosystem/deep_reviews?${params.toString()}`,
       );
@@ -389,10 +389,10 @@ export function useEcosystemDeepReviews(status: string = '') {
 }
 
 /**
- * v2: GET /api/ecosystem/profiles/{repo_full_name:path}/full — 全息详情
+ * v2: GET /api/ecosystem/profiles/{repo_full_name:path}/full — 全息詳情
  *
- * 接受 UUID 或 repo_full_name。若传 UUID，会先在缓存的列表里查找对应 full_name。
- * 失败时返回 null（不抛错），上层降级展示基础信息。
+ * 接受 UUID 或 repo_full_name。若傳 UUID，會先在快取的列表裡查詢對應 full_name。
+ * 失敗時返回 null（不拋錯），上層降級展示基礎資訊。
  */
 export function useEcosystemRepoFull(repoIdOrName: string | null) {
   return useQuery({
@@ -400,31 +400,31 @@ export function useEcosystemRepoFull(repoIdOrName: string | null) {
     queryFn: async (): Promise<EcosystemRepoFullResponse | null> => {
       if (!repoIdOrName) return null;
 
-      // 判定是 UUID 还是 owner/name
+      // 判定是 UUID 還是 owner/name
       let repoFullName = repoIdOrName;
       const looksLikeUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
         repoIdOrName,
       );
       if (looksLikeUuid) {
-        // 后端 limit 上限 200，分页拉取所有页直到命中
+        // 後端 limit 上限 200，分頁拉取所有頁直到命中
         const pageSize = 200;
         let offset = 0;
         let hit: EcosystemRepoProfile | undefined;
-        // 防御性兜底：最多 10 页（2000 仓），避免循环
+        // 防禦性兜底：最多 10 頁（2000 倉），避免迴圈
         for (let page = 0; page < 10; page++) {
           const list = await apiFetch<EcosystemProfilesResponse & { offset?: number }>(
             `/api/ecosystem/profiles?limit=${pageSize}&offset=${offset}`,
           );
           hit = list.profiles.find((p) => p.id === repoIdOrName);
           if (hit) break;
-          if (list.profiles.length < pageSize) break; // 末页
+          if (list.profiles.length < pageSize) break; // 末頁
           offset += pageSize;
         }
         if (!hit) return null;
         repoFullName = hit.repo_full_name;
       }
 
-      // path 参数包含斜杠：单段 encode 即可（path-converter 接受 /）
+      // path 引數包含斜槓：單段 encode 即可（path-converter 接受 /）
       const encoded = repoFullName
         .split('/')
         .map((seg) => encodeURIComponent(seg))
@@ -442,36 +442,36 @@ export function useEcosystemRepoFull(repoIdOrName: string | null) {
   });
 }
 
-/** 评审 status 中文映射 — 通用语义（v1.5.2: "深扫中" → "评审中"，因为 status 不区分浅/深 stage） */
+/** 評審 status 中文對映 — 通用語義（v1.5.2: "深掃中" → "評審中"，因為 status 不區分淺/深 stage） */
 export const DEEP_REVIEW_STATUS_LABELS: Record<string, string> = {
-  pending: '待评审',
-  running: '评审中',
+  pending: '待評審',
+  running: '評審中',
   completed: '已完成',
-  failed: '失败',
-  skipped: '已跳过',
+  failed: '失敗',
+  skipped: '已跳過',
 };
 
-/** 集成建议中文映射 */
+/** 整合建議中文對映 */
 export const INTEGRATION_RECOMMENDATION_LABELS: Record<string, string> = {
-  adopt: '采纳',
-  experiment: '试验',
-  hold: '观望',
-  avoid: '回避',
+  adopt: '採納',
+  experiment: '試驗',
+  hold: '觀望',
+  avoid: '迴避',
 };
 
-/** 关联关系类型中文映射 */
+/** 關聯關係型別中文對映 */
 export const RELATION_TYPE_LABELS: Record<string, string> = {
-  depends_on: '依赖',
-  inspired_by: '受启发',
+  depends_on: '依賴',
+  inspired_by: '受啟發',
   fork_of: 'Fork 自',
   replaces: '替代',
   similar_to: '相似',
-  extends: '扩展',
+  extends: '擴充套件',
   uses: '使用',
 };
 
 /**
- * 类别选项 — 与后端 EcosystemRepoProfile.relevance_category 对齐。
+ * 類別選項 — 與後端 EcosystemRepoProfile.relevance_category 對齊。
  */
 export const RELEVANCE_CATEGORIES = [
   'agent-framework',
@@ -484,9 +484,9 @@ export const RELEVANCE_CATEGORIES = [
 export type RelevanceCategory = (typeof RELEVANCE_CATEGORIES)[number];
 
 /**
- * v1.6.0: Topic badge 动态颜色调色板 (StatsBar + RepoCard 共享).
- * 按位置 idx % length 循环, top N 排名变化时颜色自动跟随位置.
- * 用低饱和度 (secondary variant 基础 + 柔和边框/文字色), 保持简洁不刺眼.
+ * v1.6.0: Topic badge 動態顏色調色盤 (StatsBar + RepoCard 共享).
+ * 按位置 idx % length 迴圈, top N 排名變化時顏色自動跟隨位置.
+ * 用低飽和度 (secondary variant 基礎 + 柔和邊框/文字色), 保持簡潔不刺眼.
  */
 export const TOPIC_COLOR_PALETTE: readonly string[] = [
   'border-blue-500/30 text-blue-700 dark:text-blue-300',
@@ -500,22 +500,22 @@ export const TOPIC_COLOR_PALETTE: readonly string[] = [
 ] as const;
 
 /**
- * @deprecated v1.6.0 SST: relevance_category 启发式分类已废弃，UI 改用真实 GitHub topics。
- * 此映射保留仅作老数据回显兼容。新代码不应使用。
+ * @deprecated v1.6.0 SST: relevance_category 啟發式分類已廢棄，UI 改用真實 GitHub topics。
+ * 此對映保留僅作老資料回顯相容。新程式碼不應使用。
  */
 export const CATEGORY_LABELS: Record<string, string> = {
   'agent-framework': 'Agent 框架',
-  'mcp-server': 'MCP 服务器',
-  'memory-system': '记忆系统',
-  'skill-system': '技能系统',
-  tooling: '开发工具',
+  'mcp-server': 'MCP 伺服器',
+  'memory-system': '記憶系統',
+  'skill-system': '技能系統',
+  tooling: '開發工具',
 };
 
 // ============================================================
-// v1.5.0-E: Project Settings (决策 12.1)
+// v1.5.0-E: Project Settings (決策 12.1)
 // ============================================================
 
-/** 项目级 ecosystem 配置 — 与后端 EcosystemProjectSettings 对齐 */
+/** 專案級 ecosystem 配置 — 與後端 EcosystemProjectSettings 對齊 */
 export interface EcosystemProjectSettings {
   project_id: string;
   min_stars: number;
@@ -526,13 +526,13 @@ export interface EcosystemProjectSettings {
   focus_languages: string[];
   shallow_concurrency: number;
   deep_concurrency: number;
-  /** v1.6.1 Phase 2: 每次扫描最多允许新增的仓数（超过触发告警），从 scan_profile 迁移 */
+  /** v1.6.1 Phase 2: 每次掃描最多允許新增的倉數（超過觸發告警），從 scan_profile 遷移 */
   alert_max_new_per_scan: number;
   created_at: string | null;
   updated_at: string | null;
 }
 
-/** 用 PUT 提交时的入参（不带 timestamps） */
+/** 用 PUT 提交時的入參（不帶 timestamps） */
 export type EcosystemProjectSettingsInput = Omit<
   EcosystemProjectSettings,
   'project_id' | 'created_at' | 'updated_at'
@@ -575,7 +575,7 @@ export function useUpdateProjectSettings(projectId: string | null) {
 // v1.5.0-E: Failed repo retry
 // ============================================================
 
-/** POST /api/ecosystem/profiles/{repo_id}/retry — 立即重试失败的仓 */
+/** POST /api/ecosystem/profiles/{repo_id}/retry — 立即重試失敗的倉 */
 export function useRetryFailedRepo() {
   const qc = useQueryClient();
   return useMutation({
@@ -670,20 +670,20 @@ export function useRepoEvents(repoId: string | null, limit = 50) {
 }
 
 // ============================================================
-// v1.6.0: 扫描研究历程 — events + deep_reviews 合并 timeline
+// v1.6.0: 掃描研究歷程 — events + deep_reviews 合併 timeline
 // ============================================================
 
-/** scan_history entry — 合并 event 与 deep_review，按时间倒序 */
+/** scan_history entry — 合併 event 與 deep_review，按時間倒序 */
 export interface ScanHistoryEntry {
   kind: 'event' | 'deep_review';
-  /** 事件类型 / 'deep_review_<stage_status>' */
+  /** 事件型別 / 'deep_review_<stage_status>' */
   type: string;
   timestamp: string;
-  /** 人类可读一句话 */
+  /** 人類可讀一句話 */
   summary: string;
   source?: string;
   scan_run_id?: string | null;
-  /** event 详情 payload */
+  /** event 詳情 payload */
   payload?: Record<string, unknown>;
   /** deep_review 5 段式 markdown */
   expandable_md?: {
@@ -717,10 +717,10 @@ export function useScanHistory(repoId: string | null, limit = 50) {
 }
 
 // ============================================================
-// v1.7.0: 浅扫批次管理
+// v1.7.0: 淺掃批次管理
 // ============================================================
 
-/** 浅扫批次 — 与后端 EcosystemShallowBatch 对齐 */
+/** 淺掃批次 — 與後端 EcosystemShallowBatch 對齊 */
 export interface ShallowBatch {
   id: string;
   project_id: string | null;
@@ -739,7 +739,7 @@ export interface ShallowBatch {
   updated_at: string;
 }
 
-/** 批次候选仓条目 */
+/** 批次候選倉條目 */
 export interface ShallowBatchItem {
   repo_id: string;
   repo_full_name: string;

@@ -74,7 +74,7 @@ export function TasksPage() {
   const [newTaskTeamId, setNewTaskTeamId] = useState('');
   const runTask = useRunTask();
 
-  // 当前项目下的团队
+  // 當前專案下的團隊
   const projectTeams = useMemo(() => {
     if (!activeProjectId) return [];
     return teams.filter((tm) => tm.project_id === activeProjectId);
@@ -231,7 +231,7 @@ export function TasksPage() {
             <DialogTitle>{t.tasks.executeTask}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* 选择目标团队 */}
+            {/* 選擇目標團隊 */}
             {projectTeams.length > 1 && (
               <div className="space-y-2">
                 <Label htmlFor="task-team">{t.tasks.targetTeam}</Label>

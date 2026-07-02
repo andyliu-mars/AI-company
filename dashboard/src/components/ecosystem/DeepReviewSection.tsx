@@ -29,27 +29,27 @@ import { useReportDetail } from '@/api/reports';
 
 interface DeepReviewSectionProps {
   reviews: EcosystemDeepReview[];
-  /** 浅扫摘要（profile 级，用于 stage=shallow_done 时显示，避免一堆"暂无数据"） */
+  /** 淺掃摘要（profile 級，用於 stage=shallow_done 時顯示，避免一堆"暫無資料"） */
   shallowSummary?: string | null;
 }
 
 /**
- * v1.5.2 fix: 后端某些 datetime 字段无 +00:00（如 completed_at），
- * 直接 new Date(...) 会按浏览器本地时区解析，与 started_at 的 UTC 形成时差。
- * 此函数显式按 UTC 解析裸字符串。
+ * v1.5.2 fix: 後端某些 datetime 欄位無 +00:00（如 completed_at），
+ * 直接 new Date(...) 會按瀏覽器本地時區解析，與 started_at 的 UTC 形成時差。
+ * 此函式顯式按 UTC 解析裸字串。
  */
 function parseAsUtc(s: string | null | undefined): number {
   if (!s) return NaN;
-  // 已含时区或 Z 后缀，原样解析
+  // 已含時區或 Z 字尾，原樣解析
   if (/[zZ]|[+-]\d{2}:\d{2}$/.test(s)) {
     return new Date(s).getTime();
   }
-  // 裸字符串：把 "2026-05-08 09:20:23.268270" 当作 UTC
+  // 裸字串：把 "2026-05-08 09:20:23.268270" 當作 UTC
   const normalized = s.replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1') + 'Z';
   return new Date(normalized).getTime();
 }
 
-/** 状态徽章 */
+/** 狀態徽章 */
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { className: string; Icon: typeof CheckCircle2 }> = {
     completed: {
@@ -71,7 +71,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-/** 集成建议徽章 */
+/** 整合建議徽章 */
 function RecommendationBadge({ rec }: { rec: string | null }) {
   if (!rec) return null;
   const styles: Record<string, string> = {
@@ -83,12 +83,12 @@ function RecommendationBadge({ rec }: { rec: string | null }) {
   const label = INTEGRATION_RECOMMENDATION_LABELS[rec] ?? rec;
   return (
     <Badge variant="outline" className={`text-xs font-medium ${styles[rec] ?? ''}`}>
-      建议：{label}
+      建議：{label}
     </Badge>
   );
 }
 
-/** Markdown 子节渲染 — 折叠/展开。空字段时显示"暂无数据"占位而非整段隐藏。 */
+/** Markdown 子節渲染 — 摺疊/展開。空欄位時顯示"暫無資料"佔位而非整段隱藏。 */
 function MarkdownBlock({
   title,
   Icon,
@@ -98,7 +98,7 @@ function MarkdownBlock({
   title: string;
   Icon: typeof Building2;
   body: string;
-  /** true 时空字段彻底不渲染（用于 demo log 这类可选块），默认 false 显示占位 */
+  /** true 時空欄位徹底不渲染（用於 demo log 這類可選塊），預設 false 顯示佔位 */
   hideWhenEmpty?: boolean;
 }) {
   const isEmpty = !body || !body.trim();
@@ -111,7 +111,7 @@ function MarkdownBlock({
       </h4>
       <div className="md-prose text-sm max-w-none pl-5">
         {isEmpty ? (
-          <p className="text-xs text-muted-foreground italic">暂无数据 — 该字段将在对应 stage 完成后填充</p>
+          <p className="text-xs text-muted-foreground italic">暫無資料 — 該欄位將在對應 stage 完成後填充</p>
         ) : (
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
         )}
@@ -120,7 +120,7 @@ function MarkdownBlock({
   );
 }
 
-/** 单条评审记录卡片（含浅扫 / 架构深扫 / 辩论 / 集成等多 stage） */
+/** 單條評審記錄卡片（含淺掃 / 架構深掃 / 辯論 / 整合等多 stage） */
 function ReviewCard({
   review,
   shallowSummary,
@@ -147,8 +147,8 @@ function ReviewCard({
     });
   };
 
-  // 评审实际耗时：基于 started_at→(shallow_completed_at | completed_at) 的差值。
-  // 历史 row duration_seconds 多为 0，前端按 UTC 解析裸字符串自算。
+  // 評審實際耗時：基於 started_at→(shallow_completed_at | completed_at) 的差值。
+  // 歷史 row duration_seconds 多為 0，前端按 UTC 解析裸字串自算。
   const formatElapsed = (
     start: string | null | undefined,
     end: string | null | undefined,
@@ -171,8 +171,8 @@ function ReviewCard({
     : null;
   const stageClass = stage ? stageBadgeClass(stage) : '';
 
-  // v1.5.2: 浅扫阶段 summary/architecture/risks/learnings 必空，shallow_summary 在 profile 上。
-  // 改用 stage 决定显示哪些字段，避免"已完成"+"一堆暂无数据"的违和感。
+  // v1.5.2: 淺掃階段 summary/architecture/risks/learnings 必空，shallow_summary 在 profile 上。
+  // 改用 stage 決定顯示哪些欄位，避免"已完成"+"一堆暫無資料"的違和感。
   const showDeepFields = !isShallowOnly;
   const hasDeepContent = useMemo(
     () =>
@@ -186,7 +186,7 @@ function ReviewCard({
     [review],
   );
 
-  // 浅扫完成时的耗时端点优先 shallow_completed_at（若 backend 没写 completed_at）
+  // 淺掃完成時的耗時端點優先 shallow_completed_at（若 backend 沒寫 completed_at）
   const elapsedEnd = isShallowOnly
     ? review.shallow_completed_at ?? review.completed_at
     : review.completed_at;
@@ -195,21 +195,21 @@ function ReviewCard({
     <div className="border rounded-md p-3 space-y-3 bg-card">
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          {/* v1.5.2: 有 stage_status 时只显示 stage 徽章，避免 status='running'+stage='shallow_done'
-              同时显示「深扫中（spinner）」+「浅扫完成」的语义冲突。失败/集成等终态下退回 status badge。 */}
+          {/* v1.5.2: 有 stage_status 時只顯示 stage 徽章，避免 status='running'+stage='shallow_done'
+              同時顯示「深掃中（spinner）」+「淺掃完成」的語義衝突。失敗/整合等終態下退回 status badge。 */}
           {stageLabel ? (
-            <Badge variant="outline" className={`text-xs ${stageClass}`} title="当前 stage 进度">
+            <Badge variant="outline" className={`text-xs ${stageClass}`} title="當前 stage 進度">
               {stageLabel}
             </Badge>
           ) : (
             <StatusBadge status={review.status} />
           )}
           <RecommendationBadge rec={review.integration_recommendation} />
-          <span className="text-xs text-muted-foreground" title="创建时间">
+          <span className="text-xs text-muted-foreground" title="建立時間">
             {formatDate(review.created_at)}
           </span>
-          <span className="text-xs text-muted-foreground" title="started_at → 当前 stage 完成时间">
-            耗时 {formatElapsed(review.started_at, elapsedEnd)}
+          <span className="text-xs text-muted-foreground" title="started_at → 當前 stage 完成時間">
+            耗時 {formatElapsed(review.started_at, elapsedEnd)}
           </span>
         </div>
         <Button
@@ -217,7 +217,7 @@ function ReviewCard({
           size="sm"
           className="h-7 px-2 text-xs"
           onClick={() => setExpanded((v) => !v)}
-          aria-label={expanded ? '收起评审详情' : '展开评审详情'}
+          aria-label={expanded ? '收起評審詳情' : '展開評審詳情'}
         >
           {expanded ? (
             <>
@@ -227,7 +227,7 @@ function ReviewCard({
           ) : (
             <>
               <ChevronDown className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-              展开
+              展開
             </>
           )}
         </Button>
@@ -235,34 +235,34 @@ function ReviewCard({
 
       {expanded && (
         <div className="space-y-3">
-          {/* 浅扫阶段：直接展示 profile.shallow_summary，不显示深扫专属空字段 */}
+          {/* 淺掃階段：直接展示 profile.shallow_summary，不顯示深掃專屬空欄位 */}
           {isShallowOnly && shallowSummary && (
-            <MarkdownBlock title="浅扫摘要" Icon={FileSearch} body={shallowSummary} />
+            <MarkdownBlock title="淺掃摘要" Icon={FileSearch} body={shallowSummary} />
           )}
           {isShallowOnly && (
             <p className="text-xs text-muted-foreground italic">
-              当前为浅扫阶段。架构 / 风险 / 学习要点等字段将在进入深扫后填充。
+              當前為淺掃階段。架構 / 風險 / 學習要點等欄位將在進入深掃後填充。
             </p>
           )}
 
-          {/* 深扫及以后：显示 5 段式 markdown 字段 */}
+          {/* 深掃及以後：顯示 5 段式 markdown 欄位 */}
           {showDeepFields && !hasDeepContent && !review.report_id && review.status === 'running' && (
             <div className="flex items-start gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/30 rounded p-2">
               <Loader2 className="h-3.5 w-3.5 mt-0.5 shrink-0 animate-spin" aria-hidden="true" />
-              <span>评审进行中 — 当前 stage 完成后，本卡片对应字段将自动填充。可稍后刷新本页查看。</span>
+              <span>評審進行中 — 當前 stage 完成後，本卡片對應欄位將自動填充。可稍後重新整理本頁檢視。</span>
             </div>
           )}
           {showDeepFields && !hasDeepContent && !review.report_id && review.status === 'pending' && (
             <p className="text-xs text-muted-foreground italic">
-              该评审记录待启动，进入下一轮 stage 调度后将自动开始。
+              該評審記錄待啟動，進入下一輪 stage 排程後將自動開始。
             </p>
           )}
           {showDeepFields && (
             <>
               <MarkdownBlock title="摘要" Icon={FileSearch} body={review.summary_md} />
-              <MarkdownBlock title="架构" Icon={Building2} body={review.architecture_md} />
-              <MarkdownBlock title="风险" Icon={ShieldAlert} body={review.risks_md} />
-              <MarkdownBlock title="学习要点" Icon={Lightbulb} body={review.learnings_md} />
+              <MarkdownBlock title="架構" Icon={Building2} body={review.architecture_md} />
+              <MarkdownBlock title="風險" Icon={ShieldAlert} body={review.risks_md} />
+              <MarkdownBlock title="學習要點" Icon={Lightbulb} body={review.learnings_md} />
             </>
           )}
 
@@ -270,7 +270,7 @@ function ReviewCard({
             <section className="space-y-1.5">
               <h4 className="text-sm font-semibold flex items-center gap-1.5">
                 <Beaker className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                Demo 运行
+                Demo 執行
                 {review.demo_result && (
                   <Badge variant="outline" className="text-[10px] ml-1">
                     {review.demo_result}
@@ -295,12 +295,12 @@ function ReviewCard({
                   onClick={() => setShowFullReport(true)}
                 >
                   <ExternalLink className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                  查看完整报告
+                  檢視完整報告
                 </Button>
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium">完整报告内容</span>
+                    <span className="text-xs font-medium">完整報告內容</span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -311,7 +311,7 @@ function ReviewCard({
                     </Button>
                   </div>
                   {reportLoading ? (
-                    <p className="text-xs text-muted-foreground">加载报告中...</p>
+                    <p className="text-xs text-muted-foreground">載入報告中...</p>
                   ) : reportDetail ? (
                     <div className="md-prose text-sm max-w-none border rounded p-3 bg-muted/30 max-h-96 overflow-auto">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -319,7 +319,7 @@ function ReviewCard({
                       </ReactMarkdown>
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">报告加载失败</p>
+                    <p className="text-xs text-muted-foreground">報告載入失敗</p>
                   )}
                 </div>
               )}
@@ -332,7 +332,7 @@ function ReviewCard({
 }
 
 /**
- * 评审记录区 — 展示该仓所有评审记录（浅/深/辩/集成多 stage 共享一行，最新优先）。
+ * 評審記錄區 — 展示該倉所有評審記錄（淺/深/辯/整合多 stage 共享一行，最新優先）。
  */
 export function DeepReviewSection({ reviews, shallowSummary }: DeepReviewSectionProps) {
   if (!reviews || reviews.length === 0) {
@@ -341,17 +341,17 @@ export function DeepReviewSection({ reviews, shallowSummary }: DeepReviewSection
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <FileSearch className="h-4 w-4" aria-hidden="true" />
-            评审记录
+            評審記錄
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          尚未对该仓库生成评审记录。先经浅扫生成 200-400 字摘要，再按相关性进入深扫调度。
+          尚未對該倉庫生成評審記錄。先經淺掃生成 200-400 字摘要，再按相關性進入深掃排程。
         </CardContent>
       </Card>
     );
   }
 
-  // 按时间倒序
+  // 按時間倒序
   const sorted = [...reviews].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
@@ -361,7 +361,7 @@ export function DeepReviewSection({ reviews, shallowSummary }: DeepReviewSection
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <FileSearch className="h-4 w-4" aria-hidden="true" />
-          评审记录 ({reviews.length})
+          評審記錄 ({reviews.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">

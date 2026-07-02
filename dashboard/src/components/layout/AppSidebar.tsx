@@ -51,7 +51,7 @@ export function AppSidebar() {
     { title: t.nav.pipelines, path: '/pipelines', icon: GitBranch },
     { title: t.nav.failures, path: '/failures', icon: AlertTriangle },
     { title: t.nav.prompts, path: '/prompts', icon: FileCode2 },
-    { title: t.nav.ecosystem ?? '生态档案', path: '/ecosystem', icon: Boxes },
+    { title: t.nav.ecosystem ?? '生態檔案', path: '/ecosystem', icon: Boxes },
     { title: t.nav.settings, path: '/settings', icon: Settings },
   ];
 

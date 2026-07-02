@@ -22,11 +22,11 @@ export interface Agent {
   status: string;
   config: Record<string, unknown>;
   created_at: string;
-  source?: 'api' | 'hook';       // 来源标记
-  session_id?: string | null;     // CC会话ID
-  cc_tool_use_id?: string | null; // CC内部agent ID
-  current_task?: string | null;   // 当前正在执行的任务描述
-  last_active_at?: string | null; // 最后活跃时间
+  source?: 'api' | 'hook';       // 來源標記
+  session_id?: string | null;     // CC會話ID
+  cc_tool_use_id?: string | null; // CC內部agent ID
+  current_task?: string | null;   // 當前正在執行的任務描述
+  last_active_at?: string | null; // 最後活躍時間
 }
 
 export type PipelineStageStatus = 'completed' | 'running' | 'pending' | 'failed';

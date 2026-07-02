@@ -429,7 +429,7 @@ export const en: Translations = {
     projectNamePlaceholder: 'Enter project name',
     projectDesc: 'Project Description',
     projectDescPlaceholder: 'Enter project description',
-    interfaceLang: 'Interface Language / 界面语言',
+    interfaceLang: 'Interface Language / 介面語言',
     langSwitchHint: 'Switch language, takes effect immediately',
     darkMode: 'Dark Mode',
     darkModeHint: 'Toggle dark/light theme',

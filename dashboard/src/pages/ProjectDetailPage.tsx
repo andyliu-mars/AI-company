@@ -880,12 +880,12 @@ export function ProjectDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4 text-sm">
-            {/* 描述：占满整行，长文本可读性最优 */}
+            {/* 描述：佔滿整行，長文本可讀性最優 */}
             <div>
               <p className="text-muted-foreground">{t.projectDetail.description}</p>
               <p className="mt-1 leading-relaxed whitespace-pre-wrap">{project.description || '--'}</p>
             </div>
-            {/* 三个统计：紧凑成一排（各占数字宽度），上方细分隔线 */}
+            {/* 三個統計：緊湊成一排（各佔數字寬度），上方細分隔線 */}
             <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-t pt-3">
               <div className="flex items-baseline gap-2">
                 <span className="text-muted-foreground">{t.projectDetail.activeTeams}</span>
@@ -904,11 +904,11 @@ export function ProjectDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Tabs: 团队总览 / Ecosystem 设置 */}
+      {/* Tabs: 團隊總覽 / Ecosystem 設定 */}
       <Tabs defaultValue="teams">
         <TabsList variant="line" className="gap-3">
-          <TabsTrigger value="teams">团队总览</TabsTrigger>
-          <TabsTrigger value="ecosystem">Ecosystem 设置</TabsTrigger>
+          <TabsTrigger value="teams">團隊總覽</TabsTrigger>
+          <TabsTrigger value="ecosystem">Ecosystem 設定</TabsTrigger>
         </TabsList>
 
         <TabsContent value="teams" className="mt-4 space-y-6">
